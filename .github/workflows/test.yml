@@ -1,0 +1,85 @@
+name: Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    services:
+      localstack:
+        image: localstack/localstack:latest
+        ports:
+          - 4566:4566
+        env:
+          DEBUG: "1"
+          DOCKER_HOST: "unix:///var/run/docker.sock"
+          LAMBDA_EXECUTOR: "docker"
+          PERSISTENCE: "1"
+          SERVICES: "lambda,sns"
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.21'
+
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          go mod download
+          go mod tidy
+          go mod verify
+
+      - name: Run unit tests
+        run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.txt
+          fail_ci_if_error: true
+
+      - name: Set up AWS CLI
+        uses: unfor19/install-aws-cli-action@v1
+        with:
+          version: 2
+
+      - name: Build Lambda function
+        run: |
+          GOOS=linux GOARCH=amd64 go build -o main
+          zip function.zip main
+
+      - name: Create SNS topic
+        run: |
+          aws --endpoint-url=http://localhost:4566 sns create-topic --name cloudwatch-notifier-topic
+
+      - name: Create Lambda function
+        run: |
+          aws --endpoint-url=http://localhost:4566 lambda create-function \
+            --function-name cloudwatch-notifier \
+            --runtime provided.al2 \
+            --handler main \
+            --zip-file fileb://function.zip \
+            --role arn:aws:iam::000000000000:role/lambda-role \
+            --environment "Variables={SNS_ARN=arn:aws:sns:us-east-1:000000000000:cloudwatch-notifier-topic,AWS_REGION=us-east-1}"
+
+      - name: Create test event
+        run: |
+          echo '{"awslogs":{"data":"'$(echo '{"logGroup":"/aws/lambda/test-function","logStream":"2024/01/01/[$LATEST]1234567890","logEvents":[{"message":"{\"log\":\"test error\",\"kubernetes\":{\"pod_name\":\"test-pod\",\"namespace_name\":\"test-namespace\",\"container_name\":\"test-app\"}}"}]}' | base64)'"}}' > test-event.json
+
+      - name: Invoke Lambda function
+        run: |
+          aws --endpoint-url=http://localhost:4566 lambda invoke \
+            --function-name cloudwatch-notifier \
+            --payload file://test-event.json \
+            output.json
+          cat output.json 

@@ -1,0 +1,48 @@
+# Go specific
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# Go workspace
+/bin/
+/pkg/
+
+# IDE specific
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Project specific
+function.zip
+main
+.localstack/
+volume/
+*.log
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage.txt
+coverage.html
+
+# AWS credentials
+.aws/
+aws.json
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+dist/
+build/ 
