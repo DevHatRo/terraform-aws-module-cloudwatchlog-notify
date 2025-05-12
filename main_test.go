@@ -18,9 +18,76 @@ type MockSNSClient struct {
 	mock.Mock
 }
 
+// Publish implements the SNS client interface
 func (m *MockSNSClient) Publish(ctx context.Context, params *sns.PublishInput, optFns ...func(*sns.Options)) (*sns.PublishOutput, error) {
 	args := m.Called(ctx, params)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(*sns.PublishOutput), args.Error(1)
+}
+
+// CreateTopic implements the SNS client interface
+func (m *MockSNSClient) CreateTopic(ctx context.Context, params *sns.CreateTopicInput, optFns ...func(*sns.Options)) (*sns.CreateTopicOutput, error) {
+	args := m.Called(ctx, params)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sns.CreateTopicOutput), args.Error(1)
+}
+
+// DeleteTopic implements the SNS client interface
+func (m *MockSNSClient) DeleteTopic(ctx context.Context, params *sns.DeleteTopicInput, optFns ...func(*sns.Options)) (*sns.DeleteTopicOutput, error) {
+	args := m.Called(ctx, params)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sns.DeleteTopicOutput), args.Error(1)
+}
+
+// GetTopicAttributes implements the SNS client interface
+func (m *MockSNSClient) GetTopicAttributes(ctx context.Context, params *sns.GetTopicAttributesInput, optFns ...func(*sns.Options)) (*sns.GetTopicAttributesOutput, error) {
+	args := m.Called(ctx, params)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sns.GetTopicAttributesOutput), args.Error(1)
+}
+
+// ListTopics implements the SNS client interface
+func (m *MockSNSClient) ListTopics(ctx context.Context, params *sns.ListTopicsInput, optFns ...func(*sns.Options)) (*sns.ListTopicsOutput, error) {
+	args := m.Called(ctx, params)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sns.ListTopicsOutput), args.Error(1)
+}
+
+// SetTopicAttributes implements the SNS client interface
+func (m *MockSNSClient) SetTopicAttributes(ctx context.Context, params *sns.SetTopicAttributesInput, optFns ...func(*sns.Options)) (*sns.SetTopicAttributesOutput, error) {
+	args := m.Called(ctx, params)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sns.SetTopicAttributesOutput), args.Error(1)
+}
+
+// Subscribe implements the SNS client interface
+func (m *MockSNSClient) Subscribe(ctx context.Context, params *sns.SubscribeInput, optFns ...func(*sns.Options)) (*sns.SubscribeOutput, error) {
+	args := m.Called(ctx, params)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sns.SubscribeOutput), args.Error(1)
+}
+
+// Unsubscribe implements the SNS client interface
+func (m *MockSNSClient) Unsubscribe(ctx context.Context, params *sns.UnsubscribeInput, optFns ...func(*sns.Options)) (*sns.UnsubscribeOutput, error) {
+	args := m.Called(ctx, params)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*sns.UnsubscribeOutput), args.Error(1)
 }
 
 func TestNewConfig(t *testing.T) {
