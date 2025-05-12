@@ -18,7 +18,7 @@ type MockSNSClient struct {
 	mock.Mock
 }
 
-// Publish implements the SNS client interface
+// Publish implements the SNSClient interface
 func (m *MockSNSClient) Publish(ctx context.Context, params *sns.PublishInput, optFns ...func(*sns.Options)) (*sns.PublishOutput, error) {
 	args := m.Called(ctx, params)
 	if args.Get(0) == nil {
@@ -27,7 +27,7 @@ func (m *MockSNSClient) Publish(ctx context.Context, params *sns.PublishInput, o
 	return args.Get(0).(*sns.PublishOutput), args.Error(1)
 }
 
-// CreateTopic implements the SNS client interface
+// CreateTopic implements the SNSClient interface
 func (m *MockSNSClient) CreateTopic(ctx context.Context, params *sns.CreateTopicInput, optFns ...func(*sns.Options)) (*sns.CreateTopicOutput, error) {
 	args := m.Called(ctx, params)
 	if args.Get(0) == nil {
@@ -36,7 +36,7 @@ func (m *MockSNSClient) CreateTopic(ctx context.Context, params *sns.CreateTopic
 	return args.Get(0).(*sns.CreateTopicOutput), args.Error(1)
 }
 
-// DeleteTopic implements the SNS client interface
+// DeleteTopic implements the SNSClient interface
 func (m *MockSNSClient) DeleteTopic(ctx context.Context, params *sns.DeleteTopicInput, optFns ...func(*sns.Options)) (*sns.DeleteTopicOutput, error) {
 	args := m.Called(ctx, params)
 	if args.Get(0) == nil {
@@ -45,7 +45,7 @@ func (m *MockSNSClient) DeleteTopic(ctx context.Context, params *sns.DeleteTopic
 	return args.Get(0).(*sns.DeleteTopicOutput), args.Error(1)
 }
 
-// GetTopicAttributes implements the SNS client interface
+// GetTopicAttributes implements the SNSClient interface
 func (m *MockSNSClient) GetTopicAttributes(ctx context.Context, params *sns.GetTopicAttributesInput, optFns ...func(*sns.Options)) (*sns.GetTopicAttributesOutput, error) {
 	args := m.Called(ctx, params)
 	if args.Get(0) == nil {
@@ -54,7 +54,7 @@ func (m *MockSNSClient) GetTopicAttributes(ctx context.Context, params *sns.GetT
 	return args.Get(0).(*sns.GetTopicAttributesOutput), args.Error(1)
 }
 
-// ListTopics implements the SNS client interface
+// ListTopics implements the SNSClient interface
 func (m *MockSNSClient) ListTopics(ctx context.Context, params *sns.ListTopicsInput, optFns ...func(*sns.Options)) (*sns.ListTopicsOutput, error) {
 	args := m.Called(ctx, params)
 	if args.Get(0) == nil {
@@ -63,7 +63,7 @@ func (m *MockSNSClient) ListTopics(ctx context.Context, params *sns.ListTopicsIn
 	return args.Get(0).(*sns.ListTopicsOutput), args.Error(1)
 }
 
-// SetTopicAttributes implements the SNS client interface
+// SetTopicAttributes implements the SNSClient interface
 func (m *MockSNSClient) SetTopicAttributes(ctx context.Context, params *sns.SetTopicAttributesInput, optFns ...func(*sns.Options)) (*sns.SetTopicAttributesOutput, error) {
 	args := m.Called(ctx, params)
 	if args.Get(0) == nil {
@@ -72,7 +72,7 @@ func (m *MockSNSClient) SetTopicAttributes(ctx context.Context, params *sns.SetT
 	return args.Get(0).(*sns.SetTopicAttributesOutput), args.Error(1)
 }
 
-// Subscribe implements the SNS client interface
+// Subscribe implements the SNSClient interface
 func (m *MockSNSClient) Subscribe(ctx context.Context, params *sns.SubscribeInput, optFns ...func(*sns.Options)) (*sns.SubscribeOutput, error) {
 	args := m.Called(ctx, params)
 	if args.Get(0) == nil {
@@ -81,7 +81,7 @@ func (m *MockSNSClient) Subscribe(ctx context.Context, params *sns.SubscribeInpu
 	return args.Get(0).(*sns.SubscribeOutput), args.Error(1)
 }
 
-// Unsubscribe implements the SNS client interface
+// Unsubscribe implements the SNSClient interface
 func (m *MockSNSClient) Unsubscribe(ctx context.Context, params *sns.UnsubscribeInput, optFns ...func(*sns.Options)) (*sns.UnsubscribeOutput, error) {
 	args := m.Called(ctx, params)
 	if args.Get(0) == nil {
@@ -214,4 +214,99 @@ func TestErrorDetails(t *testing.T) {
 	err := handler.errorDetails(context.Background(), testPayload)
 	assert.NoError(t, err)
 	mockSNS.AssertExpectations(t)
+}
+
+func TestHandleRequest(t *testing.T) {
+	// Test case 1: Valid CloudWatch Logs event
+	t.Run("Valid CloudWatch Logs event", func(t *testing.T) {
+		mockSNS := new(MockSNSClient)
+		handler := &LambdaHandler{
+			snsClient: mockSNS,
+			config: Config{
+				SNSARN: "arn:aws:sns:region:account:topic",
+			},
+		}
+
+		// Create a sample CloudWatch Logs event
+		event := events.CloudwatchLogsEvent{
+			AWSLogs: events.CloudwatchLogsRawData{
+				Data: base64.StdEncoding.EncodeToString([]byte(`{
+					"logGroup": "/aws/lambda/test-function",
+					"logStream": "2024/01/01/[$LATEST]1234567890",
+					"logEvents": [
+						{
+							"id": "1234567890",
+							"timestamp": 1704067200000,
+							"message": "Test log message"
+						}
+					]
+				}`)),
+			},
+		}
+
+		// Set up mock expectations
+		mockSNS.On("Publish", mock.Anything, mock.MatchedBy(func(input *sns.PublishInput) bool {
+			return *input.TopicArn == "arn:aws:sns:region:account:topic" &&
+				input.Message != nil
+		})).Return(&sns.PublishOutput{}, nil)
+
+		// Call the handler
+		_, err := handler.HandleRequest(context.Background(), event)
+		assert.NoError(t, err)
+		mockSNS.AssertExpectations(t)
+	})
+
+	// Test case 2: Invalid base64 data
+	t.Run("Invalid base64 data", func(t *testing.T) {
+		mockSNS := new(MockSNSClient)
+		handler := &LambdaHandler{
+			snsClient: mockSNS,
+			config: Config{
+				SNSARN: "arn:aws:sns:region:account:topic",
+			},
+		}
+
+		event := events.CloudwatchLogsEvent{
+			AWSLogs: events.CloudwatchLogsRawData{
+				Data: "invalid-base64-data",
+			},
+		}
+
+		_, err := handler.HandleRequest(context.Background(), event)
+		assert.Error(t, err)
+		mockSNS.AssertNotCalled(t, "Publish")
+	})
+
+	// Test case 3: SNS publish error
+	t.Run("SNS publish error", func(t *testing.T) {
+		mockSNS := new(MockSNSClient)
+		handler := &LambdaHandler{
+			snsClient: mockSNS,
+			config: Config{
+				SNSARN: "arn:aws:sns:region:account:topic",
+			},
+		}
+
+		event := events.CloudwatchLogsEvent{
+			AWSLogs: events.CloudwatchLogsRawData{
+				Data: base64.StdEncoding.EncodeToString([]byte(`{
+					"logGroup": "/aws/lambda/test-function",
+					"logStream": "2024/01/01/[$LATEST]1234567890",
+					"logEvents": [
+						{
+							"id": "1234567890",
+							"timestamp": 1704067200000,
+							"message": "Test log message"
+						}
+					]
+				}`)),
+			},
+		}
+
+		mockSNS.On("Publish", mock.Anything, mock.Anything).Return(nil, assert.AnError)
+
+		_, err := handler.HandleRequest(context.Background(), event)
+		assert.Error(t, err)
+		mockSNS.AssertExpectations(t)
+	})
 }
