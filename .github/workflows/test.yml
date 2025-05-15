@@ -12,6 +12,12 @@ on:
       - 'functions/**'
       - 'terraform/**'
 
+env:
+  AWS_DEFAULT_REGION: us-east-1
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+  AWS_ENDPOINT_URL: http://localhost:4566
+  
 jobs:
   test:
     name: Python Lambda Tests
@@ -52,11 +58,6 @@ jobs:
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Run unit tests
-        env:
-          AWS_DEFAULT_REGION: us-east-1
-          AWS_ACCESS_KEY_ID: test
-          AWS_SECRET_ACCESS_KEY: test
-          AWS_ENDPOINT_URL: http://localhost:4566
         run: |
           pytest test_lambda_function.py -v --cov=lambda_function --cov-report=xml
 
