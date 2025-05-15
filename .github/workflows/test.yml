@@ -25,27 +25,28 @@ jobs:
           - /var/run/docker.sock:/var/run/docker.sock
 
     steps:
-      - name: Set up Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: '1.21'
-
       - name: Check out code
         uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
       - name: Install dependencies
         run: |
-          go mod download
-          go mod tidy
-          go mod verify
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov boto3 botocore moto
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
       - name: Run unit tests
-        run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+        run: |
+          pytest test_lambda_function.py -v --cov=lambda_function --cov-report=xml
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
         with:
-          file: ./coverage.txt
+          file: ./coverage.xml
           fail_ci_if_error: true
 
       - name: Set up AWS CLI
@@ -53,10 +54,12 @@ jobs:
         with:
           version: 2
 
-      - name: Build Lambda function
+      - name: Build Lambda package
         run: |
-          GOOS=linux GOARCH=amd64 go build -o main
-          zip function.zip main
+          mkdir -p package
+          cp lambda_function.py package/
+          pip install -r requirements.txt -t package/
+          cd package && zip -r ../function.zip .
 
       - name: Create SNS topic
         run: |
@@ -66,8 +69,8 @@ jobs:
         run: |
           aws --endpoint-url=http://localhost:4566 lambda create-function \
             --function-name cloudwatch-notifier \
-            --runtime provided.al2 \
-            --handler main \
+            --runtime python3.9 \
+            --handler lambda_function.lambda_handler \
             --zip-file fileb://function.zip \
             --role arn:aws:iam::000000000000:role/lambda-role \
             --environment "Variables={SNS_ARN=arn:aws:sns:us-east-1:000000000000:cloudwatch-notifier-topic,AWS_REGION=us-east-1}"
