@@ -97,21 +97,8 @@ jobs:
 
       - name: Create test event
         run: |
-          cat > test-event.json << 'EOF'
-          {
-            "awslogs": {
-              "data": "$(echo '{
-                "logGroup": "/aws/lambda/test-function",
-                "logStream": "2024/01/01/[$LATEST]1234567890",
-                "logEvents": [
-                  {
-                    "message": "{\"log\":\"test error\",\"kubernetes\":{\"pod_name\":\"test-pod\",\"namespace_name\":\"test-namespace\",\"container_name\":\"test-app\"}}"
-                  }
-                ]
-              }' | base64 -w 0)"
-            }
-          }
-          EOF
+          LOG_DATA='{"logGroup":"/aws/lambda/test-function","logStream":"2024/01/01/[$LATEST]1234567890","logEvents":[{"message":"{\"log\":\"test error\",\"kubernetes\":{\"pod_name\":\"test-pod\",\"namespace_name\":\"test-namespace\",\"container_name\":\"test-app\"}}"}]}'
+          echo "{\"awslogs\":{\"data\":\"$(echo -n "$LOG_DATA" | base64 -w 0)\"}}" > test-event.json
 
       - name: Invoke Lambda function
         run: |
