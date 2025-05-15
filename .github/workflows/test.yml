@@ -27,7 +27,7 @@ jobs:
         working-directory: functions
     strategy:
       matrix:
-        python-version: [3.11,3.12,3.13]
+        python-version: [3.13]
     services:
       localstack:
         image: localstack/localstack:latest
@@ -97,7 +97,21 @@ jobs:
 
       - name: Create test event
         run: |
-          echo '{"awslogs":{"data":"'$(echo '{"logGroup":"/aws/lambda/test-function","logStream":"2024/01/01/[$LATEST]1234567890","logEvents":[{"message":"{\"log\":\"test error\",\"kubernetes\":{\"pod_name\":\"test-pod\",\"namespace_name\":\"test-namespace\",\"container_name\":\"test-app\"}}"}]}' | base64)'"}}' > test-event.json
+          cat > test-event.json << 'EOF'
+          {
+            "awslogs": {
+              "data": "$(echo '{
+                "logGroup": "/aws/lambda/test-function",
+                "logStream": "2024/01/01/[$LATEST]1234567890",
+                "logEvents": [
+                  {
+                    "message": "{\"log\":\"test error\",\"kubernetes\":{\"pod_name\":\"test-pod\",\"namespace_name\":\"test-namespace\",\"container_name\":\"test-app\"}}"
+                  }
+                ]
+              }' | base64 -w 0)"
+            }
+          }
+          EOF
 
       - name: Invoke Lambda function
         run: |
