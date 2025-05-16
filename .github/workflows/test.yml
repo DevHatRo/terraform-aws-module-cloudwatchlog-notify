@@ -65,7 +65,7 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./coverage.xml
+          files: ./coverage.xml
           flags: python-tests
           name: codecov-umbrella
           fail_ci_if_error: false
