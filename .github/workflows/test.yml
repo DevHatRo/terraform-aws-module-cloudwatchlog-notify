@@ -1,0 +1,105 @@
+name: Test
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'functions/**'
+      - 'terraform/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'functions/**'
+      - 'terraform/**'
+
+env:
+  AWS_DEFAULT_REGION: us-east-1
+  AWS_ACCESS_KEY_ID: test
+  AWS_SECRET_ACCESS_KEY: test
+  AWS_ENDPOINT_URL: http://localhost:4566
+
+jobs:
+  test:
+    name: Python Lambda Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: functions
+    strategy:
+      matrix:
+        python-version: [3.13]
+    services:
+      localstack:
+        image: localstack/localstack:latest
+        ports:
+          - 4566:4566
+        env:
+          DEBUG: "1"
+          DOCKER_HOST: "unix:///var/run/docker.sock"
+          LAMBDA_EXECUTOR: "docker"
+          PERSISTENCE: "1"
+          SERVICES: "lambda,sns"
+        volumes:
+          - /var/run/docker.sock:/var/run/docker.sock
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov boto3 botocore moto
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run unit tests
+        run: |
+          pytest test_lambda_function.py -v --cov=lambda_function --cov-report=xml
+
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          flags: python-tests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - name: Set up AWS CLI
+        uses: unfor19/install-aws-cli-action@v1
+        with:
+          version: 2
+
+      - name: Build Lambda package
+        run: |
+          mkdir -p package
+          cp lambda_function.py package/
+          pip install -r requirements.txt -t package/
+          cd package && zip -r ../function.zip .
+
+      - name: Create SNS topic
+        run: |
+          aws --endpoint-url=http://localhost:4566 sns create-topic --name cloudwatch-notifier-topic
+
+      - name: Create Lambda function
+        run: |
+          aws --endpoint-url=http://localhost:4566 lambda create-function \
+            --function-name cloudwatch-notifier \
+            --runtime python${{ matrix.python-version }} \
+            --handler lambda_function.lambda_handler \
+            --zip-file fileb://function.zip \
+            --role arn:aws:iam::000000000000:role/lambda-role \
+            --environment "Variables={SNS_ARN=arn:aws:sns:us-east-1:000000000000:cloudwatch-notifier-topic,AWS_REGION=us-east-1}"
+
+      - name: Invoke Lambda function with CloudWatch Logs event
+        run: |
+          python ../scripts/invoke_lambda.py cloudwatch-notifier http://localhost:4566 cloudwatch
+
+      - name: Invoke Lambda function with SNS event
+        run: |
+          python ../scripts/invoke_lambda.py cloudwatch-notifier http://localhost:4566 sns
