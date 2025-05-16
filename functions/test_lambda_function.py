@@ -148,10 +148,10 @@ class TestLambdaFunction(unittest.TestCase):
         """Test handling an SNS event with a CloudWatch Logs payload"""
         # Create a CloudWatch Logs event
         cw_logs_event = self.create_test_cw_logs_event("This is a test error message")
-        
+
         # Wrap it in an SNS message
         sns_message = json.dumps(cw_logs_event)
-        
+
         # Create an SNS event that would be received from SNS subscription
         event = {
             "Records": [

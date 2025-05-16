@@ -11,7 +11,7 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
@@ -34,4 +34,4 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
-          name: "Release ${{ steps.tag.outputs.new_tag }}" 
+          name: "Release ${{ steps.tag.outputs.new_tag }}"

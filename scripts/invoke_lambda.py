@@ -14,7 +14,7 @@ from botocore.exceptions import ClientError
 def invoke_lambda(function_name="cloudwatch-notifier", endpoint_url=None, max_retries=10, retry_delay=3, event_type="cloudwatch"):
     """
     Create a test event and invoke the Lambda function.
-    
+
     Args:
         function_name (str): Name of the Lambda function to invoke
         endpoint_url (str): Optional endpoint URL for LocalStack
@@ -49,7 +49,7 @@ def invoke_lambda(function_name="cloudwatch-notifier", endpoint_url=None, max_re
         # Compress and encode the log data
         compressed_data = gzip.compress(json.dumps(log_data).encode("utf-8"))
         encoded_data = base64.b64encode(compressed_data).decode("utf-8")
-        
+
         # Create the final event structure
         event = {
             "awslogs": {
@@ -79,14 +79,14 @@ def invoke_lambda(function_name="cloudwatch-notifier", endpoint_url=None, max_re
                 }
             ]
         }
-        
+
         # Create CloudWatch Logs event structure
         cw_logs_event = {
             "awslogs": {
                 "data": base64.b64encode(gzip.compress(json.dumps(log_data).encode("utf-8"))).decode("utf-8")
             }
         }
-        
+
         # Wrap it in an SNS event
         event = {
             "Records": [
@@ -112,7 +112,7 @@ def invoke_lambda(function_name="cloudwatch-notifier", endpoint_url=None, max_re
         }
     else:
         raise ValueError(f"Unknown event type: {event_type}")
-    
+
     # Convert to JSON string
     payload = json.dumps(event)
 
@@ -192,17 +192,17 @@ def invoke_lambda(function_name="cloudwatch-notifier", endpoint_url=None, max_re
 if __name__ == "__main__":
     # Get function name from command line argument if provided
     function_name = sys.argv[1] if len(sys.argv) > 1 else "cloudwatch-notifier"
-    
+
     # Get endpoint URL from command line argument if provided
     endpoint_url = sys.argv[2] if len(sys.argv) > 2 else None
-    
+
     # Get event type from command line argument if provided
     event_type = sys.argv[3] if len(sys.argv) > 3 else "cloudwatch"
-    
+
     try:
         # Invoke the Lambda function
         status_code = invoke_lambda(function_name, endpoint_url, event_type=event_type)
-        
+
         # Exit with appropriate status code
         if status_code >= 200 and status_code < 300:
             sys.exit(0)

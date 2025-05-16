@@ -24,23 +24,23 @@ The Lambda function supports:
 ```hcl
 module "cloudwatch_logs_notifier" {
   source  = "github.com/DevHatRo/terraform-aws-module-cloudwatchlog-notify"
-  
+
   # Basic configuration
   function_name          = "logs-error-notifier"
   sns_topic_name         = "logs-error-alerts"
-  
+
   # Email subscribers to receive notifications
   email_subscribers      = [
     "alerts@example.com",
     "devops@example.com"
   ]
-  
+
   # CloudWatch log groups to monitor
   log_group_subscriptions = [
     "/aws/lambda/important-function",
     "/aws/eks/my-cluster/application-logs"
   ]
-  
+
   # Filter pattern (customize for your needs)
   filter_pattern         = "{$.kubernetes.namespace_name = \"*\" && $.log = \"*error*\"}"
 
