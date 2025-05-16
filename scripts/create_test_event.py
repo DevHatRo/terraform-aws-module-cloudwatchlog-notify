@@ -12,7 +12,7 @@ import sys
 def create_test_event(output_file="test-event.json"):
     """
     Create a test CloudWatch Logs event file for Lambda testing.
-    
+
     Args:
         output_file (str): Path to the output file
     """
@@ -42,7 +42,7 @@ def create_test_event(output_file="test-event.json"):
     # Compress and encode the log data
     compressed_data = gzip.compress(json.dumps(log_data).encode("utf-8"))
     encoded_data = base64.b64encode(compressed_data).decode("utf-8")
-    
+
     # Create the final event structure
     event = {
         "awslogs": {
@@ -53,9 +53,9 @@ def create_test_event(output_file="test-event.json"):
     # Write to output file
     with open(output_file, "w") as f:
         json.dump(event, f)
-    
+
     print(f"Created test event file: {output_file}")
-    
+
     # Optionally print the content
     with open(output_file, "r") as f:
         print(f.read())
@@ -63,4 +63,4 @@ def create_test_event(output_file="test-event.json"):
 if __name__ == "__main__":
     # Use command line argument for output file if provided
     output_file = sys.argv[1] if len(sys.argv) > 1 else "test-event.json"
-    create_test_event(output_file) 
+    create_test_event(output_file)
