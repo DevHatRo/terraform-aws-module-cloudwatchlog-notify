@@ -143,6 +143,107 @@ class TestLambdaFunction(unittest.TestCase):
         # Check that SNS publish was not called
         mock_sns_client.publish.assert_not_called()
 
+    @patch('lambda_function.sns_client')
+    def test_lambda_handler_sns_event(self, mock_sns_client):
+        """Test handling an SNS event with a CloudWatch Logs payload"""
+        # Create a CloudWatch Logs event
+        cw_logs_event = self.create_test_cw_logs_event("This is a test error message")
+        
+        # Wrap it in an SNS message
+        sns_message = json.dumps(cw_logs_event)
+        
+        # Create an SNS event that would be received from SNS subscription
+        event = {
+            "Records": [
+                {
+                    "EventSource": "aws:sns",
+                    "EventVersion": "1.0",
+                    "EventSubscriptionArn": "arn:aws:sns:us-east-1:123456789012:test-topic:subscription-id",
+                    "Sns": {
+                        "Type": "Notification",
+                        "MessageId": "12345678-1234-1234-1234-123456789012",
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                        "Subject": "Test Subject",
+                        "Message": sns_message,
+                        "Timestamp": "2023-01-01T00:00:00.000Z",
+                        "SignatureVersion": "1",
+                        "Signature": "test-signature",
+                        "SigningCertUrl": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-12345.pem",
+                        "UnsubscribeUrl": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:123456789012:test-topic:subscription-id",
+                        "MessageAttributes": {}
+                    }
+                }
+            ]
+        }
+
+        # Mock the SNS publish response
+        mock_sns_client.publish.return_value = {'MessageId': 'test-message-id'}
+
+        # Call the Lambda handler
+        result = lambda_function.lambda_handler(event, {})
+
+        # Check if SNS publish was called
+        mock_sns_client.publish.assert_called_once()
+
+        # Check the response
+        self.assertEqual(result['statusCode'], 200)
+        self.assertEqual(json.loads(result['body']), 'Successfully processed CloudWatch Logs')
+
+    @patch('lambda_function.sns_client')
+    def test_lambda_handler_sns_event_invalid_json(self, mock_sns_client):
+        """Test handling an SNS event with invalid JSON message"""
+        # Create an SNS event with invalid JSON in the message
+        event = {
+            "Records": [
+                {
+                    "EventSource": "aws:sns",
+                    "EventVersion": "1.0",
+                    "EventSubscriptionArn": "arn:aws:sns:us-east-1:123456789012:test-topic:subscription-id",
+                    "Sns": {
+                        "Type": "Notification",
+                        "MessageId": "12345678-1234-1234-1234-123456789012",
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                        "Subject": "Test Subject",
+                        "Message": "{invalid json",  # Invalid JSON
+                        "Timestamp": "2023-01-01T00:00:00.000Z",
+                        "SignatureVersion": "1",
+                        "Signature": "test-signature",
+                        "SigningCertUrl": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-12345.pem",
+                        "UnsubscribeUrl": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:123456789012:test-topic:subscription-id",
+                        "MessageAttributes": {}
+                    }
+                }
+            ]
+        }
+
+        # Call the Lambda handler
+        result = lambda_function.lambda_handler(event, {})
+
+        # Check that SNS publish was not called (error case)
+        mock_sns_client.publish.assert_not_called()
+
+        # Check the response has error status code
+        self.assertEqual(result['statusCode'], 400)
+        self.assertEqual(json.loads(result['body']), 'Invalid SNS message format')
+
+    @patch('lambda_function.sns_client')
+    def test_lambda_handler_unknown_event(self, mock_sns_client):
+        """Test handling an unknown event format"""
+        # Create an event with unknown format
+        event = {
+            "some_key": "some_value"
+        }
+
+        # Call the Lambda handler
+        result = lambda_function.lambda_handler(event, {})
+
+        # Check that SNS publish was not called
+        mock_sns_client.publish.assert_not_called()
+
+        # Check the response has error status code
+        self.assertEqual(result['statusCode'], 400)
+        self.assertEqual(json.loads(result['body']), 'Unknown event format')
+
 
 if __name__ == '__main__':
     unittest.main()

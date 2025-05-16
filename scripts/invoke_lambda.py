@@ -11,50 +11,108 @@ import sys
 import time
 from botocore.exceptions import ClientError
 
-def invoke_lambda(function_name="cloudwatch-notifier", endpoint_url=None, max_retries=10, retry_delay=3):
+def invoke_lambda(function_name="cloudwatch-notifier", endpoint_url=None, max_retries=10, retry_delay=3, event_type="cloudwatch"):
     """
-    Create a test CloudWatch Logs event and invoke the Lambda function.
-
+    Create a test event and invoke the Lambda function.
+    
     Args:
         function_name (str): Name of the Lambda function to invoke
         endpoint_url (str): Optional endpoint URL for LocalStack
         max_retries (int): Maximum number of retries
         retry_delay (int): Delay between retries in seconds
+        event_type (str): Type of event to create ('cloudwatch' or 'sns')
     """
-    # Create log data structure with Kubernetes log format
-    log_data = {
-        "messageType": "DATA_MESSAGE",
-        "owner": "123456789012",
-        "logGroup": "/aws/lambda/test-function",
-        "logStream": "2024/01/01/[$LATEST]1234567890",
-        "subscriptionFilters": ["filter"],
-        "logEvents": [
-            {
-                "id": "event1",
-                "timestamp": 1699999999000,
-                "message": json.dumps({
-                    "log": "test error",
-                    "kubernetes": {
-                        "pod_name": "test-pod",
-                        "namespace_name": "test-namespace",
-                        "container_name": "test-app"
-                    }
-                })
-            }
-        ]
-    }
-
-    # Compress and encode the log data
-    compressed_data = gzip.compress(json.dumps(log_data).encode("utf-8"))
-    encoded_data = base64.b64encode(compressed_data).decode("utf-8")
-
-    # Create the final event structure
-    event = {
-        "awslogs": {
-            "data": encoded_data
+    if event_type == "cloudwatch":
+        # Create log data structure with Kubernetes log format
+        log_data = {
+            "messageType": "DATA_MESSAGE",
+            "owner": "123456789012",
+            "logGroup": "/aws/lambda/test-function",
+            "logStream": "2024/01/01/[$LATEST]1234567890",
+            "subscriptionFilters": ["filter"],
+            "logEvents": [
+                {
+                    "id": "event1",
+                    "timestamp": 1699999999000,
+                    "message": json.dumps({
+                        "log": "test error",
+                        "kubernetes": {
+                            "pod_name": "test-pod",
+                            "namespace_name": "test-namespace",
+                            "container_name": "test-app"
+                        }
+                    })
+                }
+            ]
         }
-    }
 
+        # Compress and encode the log data
+        compressed_data = gzip.compress(json.dumps(log_data).encode("utf-8"))
+        encoded_data = base64.b64encode(compressed_data).decode("utf-8")
+        
+        # Create the final event structure
+        event = {
+            "awslogs": {
+                "data": encoded_data
+            }
+        }
+    elif event_type == "sns":
+        # Create a CloudWatch Logs event
+        log_data = {
+            "messageType": "DATA_MESSAGE",
+            "owner": "123456789012",
+            "logGroup": "/aws/lambda/test-function",
+            "logStream": "2024/01/01/[$LATEST]1234567890",
+            "subscriptionFilters": ["filter"],
+            "logEvents": [
+                {
+                    "id": "event1",
+                    "timestamp": 1699999999000,
+                    "message": json.dumps({
+                        "log": "test error",
+                        "kubernetes": {
+                            "pod_name": "test-pod",
+                            "namespace_name": "test-namespace",
+                            "container_name": "test-app"
+                        }
+                    })
+                }
+            ]
+        }
+        
+        # Create CloudWatch Logs event structure
+        cw_logs_event = {
+            "awslogs": {
+                "data": base64.b64encode(gzip.compress(json.dumps(log_data).encode("utf-8"))).decode("utf-8")
+            }
+        }
+        
+        # Wrap it in an SNS event
+        event = {
+            "Records": [
+                {
+                    "EventSource": "aws:sns",
+                    "EventVersion": "1.0",
+                    "EventSubscriptionArn": "arn:aws:sns:us-east-1:123456789012:test-topic:subscription-id",
+                    "Sns": {
+                        "Type": "Notification",
+                        "MessageId": "12345678-1234-1234-1234-123456789012",
+                        "TopicArn": "arn:aws:sns:us-east-1:123456789012:test-topic",
+                        "Subject": "Test Subject",
+                        "Message": json.dumps(cw_logs_event),
+                        "Timestamp": "2023-01-01T00:00:00.000Z",
+                        "SignatureVersion": "1",
+                        "Signature": "test-signature",
+                        "SigningCertUrl": "https://sns.us-east-1.amazonaws.com/SimpleNotificationService-12345.pem",
+                        "UnsubscribeUrl": "https://sns.us-east-1.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-east-1:123456789012:test-topic:subscription-id",
+                        "MessageAttributes": {}
+                    }
+                }
+            ]
+        }
+    else:
+        raise ValueError(f"Unknown event type: {event_type}")
+    
     # Convert to JSON string
     payload = json.dumps(event)
 
@@ -134,14 +192,17 @@ def invoke_lambda(function_name="cloudwatch-notifier", endpoint_url=None, max_re
 if __name__ == "__main__":
     # Get function name from command line argument if provided
     function_name = sys.argv[1] if len(sys.argv) > 1 else "cloudwatch-notifier"
-
+    
     # Get endpoint URL from command line argument if provided
     endpoint_url = sys.argv[2] if len(sys.argv) > 2 else None
-
+    
+    # Get event type from command line argument if provided
+    event_type = sys.argv[3] if len(sys.argv) > 3 else "cloudwatch"
+    
     try:
         # Invoke the Lambda function
-        status_code = invoke_lambda(function_name, endpoint_url)
-
+        status_code = invoke_lambda(function_name, endpoint_url, event_type=event_type)
+        
         # Exit with appropriate status code
         if status_code >= 200 and status_code < 300:
             sys.exit(0)

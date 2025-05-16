@@ -96,6 +96,10 @@ jobs:
             --role arn:aws:iam::000000000000:role/lambda-role \
             --environment "Variables={SNS_ARN=arn:aws:sns:us-east-1:000000000000:cloudwatch-notifier-topic,AWS_REGION=us-east-1}"
 
-      - name: Invoke Lambda function
+      - name: Invoke Lambda function with CloudWatch Logs event
         run: |
-          python ../scripts/invoke_lambda.py cloudwatch-notifier http://localhost:4566
+          python ../scripts/invoke_lambda.py cloudwatch-notifier http://localhost:4566 cloudwatch
+
+      - name: Invoke Lambda function with SNS event
+        run: |
+          python ../scripts/invoke_lambda.py cloudwatch-notifier http://localhost:4566 sns
