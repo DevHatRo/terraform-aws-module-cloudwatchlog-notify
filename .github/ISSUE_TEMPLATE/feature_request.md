@@ -19,4 +19,4 @@ Describe how you envision this feature working. Include any specific implementat
 Describe any alternative solutions or features you've considered.
 
 ## Additional Context
-Add any other context, code examples, or references about the feature request here. 
+Add any other context, code examples, or references about the feature request here.

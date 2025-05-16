@@ -30,7 +30,7 @@ class TestLambdaFunction(unittest.TestCase):
             "timestamp": 1607456000000,
             "message": message
         }
-        
+
         # Create the CloudWatch Logs data
         log_data = {
             "messageType": "DATA_MESSAGE",
@@ -40,11 +40,11 @@ class TestLambdaFunction(unittest.TestCase):
             "subscriptionFilters": ["test-filter"],
             "logEvents": [log_event]
         }
-        
+
         # Compress and encode the log data
         compressed_data = gzip.compress(json.dumps(log_data).encode('utf-8'))
         encoded_data = base64.b64encode(compressed_data).decode('utf-8')
-        
+
         # Return the CloudWatch Logs event
         return {
             "awslogs": {
@@ -57,16 +57,16 @@ class TestLambdaFunction(unittest.TestCase):
         """Test handling a regular log message"""
         # Create a test event with a regular log message
         event = self.create_test_cw_logs_event("This is a test error message")
-        
+
         # Mock the SNS publish response
         mock_sns_client.publish.return_value = {'MessageId': 'test-message-id'}
-        
+
         # Call the Lambda handler
         result = lambda_function.lambda_handler(event, {})
-        
+
         # Check if SNS publish was called
         mock_sns_client.publish.assert_called_once()
-        
+
         # Check the response
         self.assertEqual(result['statusCode'], 200)
         self.assertEqual(json.loads(result['body']), 'Successfully processed CloudWatch Logs')
@@ -81,16 +81,16 @@ class TestLambdaFunction(unittest.TestCase):
             "details": {"key": "value"}
         })
         event = self.create_test_cw_logs_event(json_message)
-        
+
         # Mock the SNS publish response
         mock_sns_client.publish.return_value = {'MessageId': 'test-message-id'}
-        
+
         # Call the Lambda handler
         result = lambda_function.lambda_handler(event, {})
-        
+
         # Check if SNS publish was called
         mock_sns_client.publish.assert_called_once()
-        
+
         # Check the response
         self.assertEqual(result['statusCode'], 200)
         self.assertEqual(json.loads(result['body']), 'Successfully processed CloudWatch Logs')
@@ -109,16 +109,16 @@ class TestLambdaFunction(unittest.TestCase):
             "level": "ERROR"
         })
         event = self.create_test_cw_logs_event(k8s_message)
-        
+
         # Mock the SNS publish response
         mock_sns_client.publish.return_value = {'MessageId': 'test-message-id'}
-        
+
         # Call the Lambda handler
         result = lambda_function.lambda_handler(event, {})
-        
+
         # Check if SNS publish was called
         mock_sns_client.publish.assert_called_once()
-        
+
         # Check the response
         self.assertEqual(result['statusCode'], 200)
         self.assertEqual(json.loads(result['body']), 'Successfully processed CloudWatch Logs')
@@ -129,20 +129,20 @@ class TestLambdaFunction(unittest.TestCase):
         # Remove the SNS_ARN environment variable
         if 'SNS_ARN' in os.environ:
             del os.environ['SNS_ARN']
-            
+
         # Create a test event
         event = self.create_test_cw_logs_event("This is a test error message")
-        
+
         # Call the Lambda handler
         result = lambda_function.lambda_handler(event, {})
-        
+
         # Check the response
         self.assertEqual(result['statusCode'], 500)
         self.assertEqual(json.loads(result['body']), 'SNS_ARN environment variable not set')
-        
+
         # Check that SNS publish was not called
         mock_sns_client.publish.assert_not_called()
 
 
 if __name__ == '__main__':
-    unittest.main() 
+    unittest.main()

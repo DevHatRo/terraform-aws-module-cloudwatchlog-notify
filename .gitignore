@@ -9,9 +9,12 @@ crash.*.log
 .terraformrc
 terraform.rc
 .terraform.lock.hcl
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
 
 # Python specific
-functions/*.zip
 __pycache__/
 *.py[cod]
 *$py.class
@@ -34,11 +37,16 @@ var/
 .pytest_cache/
 .coverage
 htmlcov/
+functions/*.zip
 
 # Virtual environments
+.env
+.venv
+env/
 venv/
 ENV/
-env/
+env.bak/
+venv.bak/
 
 # IDE specific
 .idea/
@@ -49,6 +57,11 @@ env/
 
 # OS specific
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
 # AWS artifacts
@@ -60,41 +73,26 @@ samconfig.toml
 # Local testing
 .localstack/
 volume/
-function.zip
 *.log
 
-# Environment variables
-.env
-.env.local
-.env.*
+# Distribution / packaging
+*.zip
+*.tar.gz
 
-# Go specific
+# Go specific (keeping for reference)
 *.exe
 *.exe~
 *.dll
-*.so
 *.dylib
 *.test
 *.out
 go.work
-
-# Go workspace
 /bin/
 /pkg/
-
-# IDE specific
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
 
 # Project specific
 function.zip
 main
-.localstack/
-volume/
-*.log
 
 # Test coverage
 coverage.txt
@@ -103,10 +101,6 @@ coverage.html
 # AWS credentials
 .aws/
 aws.json
-
-# Build artifacts
-dist/
-build/
 
 # Local .terraform directories
 **/.terraform/*
@@ -127,7 +121,6 @@ terraform.rc
 .terraform.lock.hcl
 
 # Python Lambda function artifacts
-functions/*.zip
 __pycache__/
 *.py[cod]
 *$py.class
@@ -166,4 +159,28 @@ samconfig.toml
 htmlcov/
 
 # Localstack artifacts
-.localstack/ 
+.localstack/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE related
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

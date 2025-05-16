@@ -17,7 +17,7 @@ env:
   AWS_ACCESS_KEY_ID: test
   AWS_SECRET_ACCESS_KEY: test
   AWS_ENDPOINT_URL: http://localhost:4566
-  
+
 jobs:
   test:
     name: Python Lambda Tests
@@ -106,4 +106,4 @@ jobs:
             --function-name cloudwatch-notifier \
             --payload file://test-event.json \
             output.json
-          cat output.json 
+          cat output.json

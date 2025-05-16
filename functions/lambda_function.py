@@ -20,7 +20,7 @@ def lambda_handler(event, context):
     and forwarding them to SNS.
     """
     logger.info("Event received: %s", json.dumps(event))
-    
+
     # Get SNS ARN from environment variable
     sns_arn = os.environ.get('SNS_ARN')
     if not sns_arn:
@@ -29,7 +29,7 @@ def lambda_handler(event, context):
             'statusCode': 500,
             'body': json.dumps('SNS_ARN environment variable not set')
         }
-    
+
     # Check if this is an SNS event
     if 'Records' in event:
         for record in event['Records']:
@@ -55,7 +55,7 @@ def lambda_handler(event, context):
             'statusCode': 400,
             'body': json.dumps('Unknown event format')
         }
-    
+
     return {
         'statusCode': 200,
         'body': json.dumps('Successfully processed CloudWatch Logs')
@@ -64,7 +64,7 @@ def lambda_handler(event, context):
 def process_cloudwatch_log_event(event, sns_arn):
     """
     Process a CloudWatch Logs event and forward to SNS.
-    
+
     Args:
         event (dict): CloudWatch Logs event data
         sns_arn (str): SNS topic ARN to send notifications to
@@ -74,7 +74,7 @@ def process_cloudwatch_log_event(event, sns_arn):
     if not compressed_data:
         logger.warning("No log data found in event")
         return
-    
+
     # Decompress the log data
     try:
         compressed_bytes = base64.b64decode(compressed_data)
@@ -84,13 +84,13 @@ def process_cloudwatch_log_event(event, sns_arn):
     except Exception as e:
         logger.error("Failed to decode log data: %s", str(e))
         return
-    
+
     # Check if there are any log events
     log_events = log_data.get('logEvents', [])
     if not log_events:
         logger.info("No log events found")
         return
-    
+
     # Process each log event
     for log_event in log_events:
         try:
@@ -98,7 +98,7 @@ def process_cloudwatch_log_event(event, sns_arn):
             log_group = log_data.get('logGroup', 'unknown')
             log_stream = log_data.get('logStream', 'unknown')
             message = log_event.get('message', '')
-            
+
             # Try to parse message as JSON if possible
             try:
                 message_json = json.loads(message)
@@ -109,7 +109,7 @@ def process_cloudwatch_log_event(event, sns_arn):
                     pod = k8s.get('pod_name', 'unknown')
                     container = k8s.get('container_name', 'unknown')
                     log_content = message_json.get('log', message)
-                    
+
                     notification_message = (
                         f"Error detected in Kubernetes logs:\n\n"
                         f"Namespace: {namespace}\n"
@@ -134,17 +134,17 @@ def process_cloudwatch_log_event(event, sns_arn):
                     f"Log Stream: {log_stream}\n\n"
                     f"Message: {message}"
                 )
-            
+
             # Send to SNS
             send_to_sns(notification_message, sns_arn)
-            
+
         except Exception as e:
             logger.error("Error processing log event: %s", str(e))
 
 def send_to_sns(message, sns_arn):
     """
     Send a message to an SNS topic.
-    
+
     Args:
         message (str): Message to send
         sns_arn (str): SNS topic ARN
@@ -157,4 +157,4 @@ def send_to_sns(message, sns_arn):
         )
         logger.info("Message sent to SNS: %s", response['MessageId'])
     except ClientError as e:
-        logger.error("Failed to send message to SNS: %s", str(e)) 
+        logger.error("Failed to send message to SNS: %s", str(e))

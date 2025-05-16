@@ -1,7 +1,25 @@
-variable "region" {
-  description = "The AWS region to deploy the resources in"
-  type        = string
-  default     = "us-east-1"
+variable "create_lambda_function" {
+  description = "Whether to create the Lambda function"
+  type        = bool
+  default     = true
+}
+
+variable "enabled" {
+  description = "Whether to enable all resources"
+  type        = bool
+  default     = true
+}
+
+variable "create_sns_topic" {
+  description = "Whether to create the SNS topic"
+  type        = bool
+  default     = true
+}
+
+variable "create_cloudwatch_log_subscription_filter" {
+  description = "Whether to create the CloudWatch log subscription filter"
+  type        = bool
+  default     = true
 }
 
 variable "function_name" {
@@ -52,4 +70,10 @@ variable "tags" {
   default = {
     ManagedBy = "terraform"
   }
+}
+
+variable "additional_policy_statements" {
+  description = "Additional IAM policy statements to attach to the Lambda function"
+  type        = any
+  default     = {}
 }
