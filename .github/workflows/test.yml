@@ -97,8 +97,7 @@ jobs:
 
       - name: Create test event
         run: |
-          LOG_DATA='{"logGroup":"/aws/lambda/test-function","logStream":"2024/01/01/[$LATEST]1234567890","logEvents":[{"message":"{\"log\":\"test error\",\"kubernetes\":{\"pod_name\":\"test-pod\",\"namespace_name\":\"test-namespace\",\"container_name\":\"test-app\"}}"}]}'
-          echo "{\"awslogs\":{\"data\":\"$(echo -n "$LOG_DATA" | base64 -w 0)\"}}" > test-event.json
+          python ../../scripts/create_test_event.py
 
       - name: Invoke Lambda function
         run: |
