@@ -42,7 +42,7 @@ def create_test_event(output_file="test-event.json"):
     # Compress and encode the log data
     compressed_data = gzip.compress(json.dumps(log_data).encode("utf-8"))
     encoded_data = base64.b64encode(compressed_data).decode("utf-8")
-
+    
     # Create the final event structure
     event = {
         "awslogs": {
@@ -50,15 +50,14 @@ def create_test_event(output_file="test-event.json"):
         }
     }
 
-    # Write to output file
+    # Write to output file without extra formatting
     with open(output_file, "w") as f:
-        json.dump(event, f)
-
+        json.dump(event, f, separators=(',', ':'))
+    
     print(f"Created test event file: {output_file}")
-
-    # Optionally print the content
-    with open(output_file, "r") as f:
-        print(f.read())
+    
+    # Print the file content without reading it back
+    print(json.dumps(event, separators=(',', ':')))
 
 if __name__ == "__main__":
     # Use command line argument for output file if provided
