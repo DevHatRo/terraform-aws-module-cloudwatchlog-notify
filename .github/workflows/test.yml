@@ -101,8 +101,4 @@ jobs:
 
       - name: Invoke Lambda function
         run: |
-          aws --endpoint-url=http://localhost:4566 lambda invoke \
-            --function-name cloudwatch-notifier \
-            --payload file://test-event.json \
-            output.json
-          cat output.json
+          python ../scripts/invoke_lambda.py cloudwatch-notifier http://localhost:4566
