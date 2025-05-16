@@ -1,122 +1,60 @@
-# CloudWatch Logs Notification Module for AWS
-
-[![codecov](https://codecov.io/gh/DevHatRo/terraform-aws-module-cloudwatchlog-notify/graph/badge.svg?token=UPRDDCJZ1P)](https://codecov.io/gh/DevHatRo/terraform-aws-module-cloudwatchlog-notify)
-
-This Terraform module deploys a complete solution for receiving CloudWatch Logs events and sending notifications through SNS.
-
-## Architecture
-
-This module sets up:
-
-1. A Lambda function that processes CloudWatch Logs events
-2. An SNS topic that receives notifications from the Lambda function
-3. CloudWatch Logs subscription filters for the specified log groups
-4. All necessary IAM permissions and policies
-
-The Lambda function supports:
-- Processing CloudWatch Logs events directly
-- Processing events via SNS
-- Parsing JSON log messages, including Kubernetes logs
-- Custom formatting for different log types
-
-## Usage
-
-```hcl
-module "cloudwatch_logs_notifier" {
-  source  = "github.com/DevHatRo/terraform-aws-module-cloudwatchlog-notify"
-
-  # Basic configuration
-  function_name          = "logs-error-notifier"
-  sns_topic_name         = "logs-error-alerts"
-
-  # Email subscribers to receive notifications
-  email_subscribers      = [
-    "alerts@example.com",
-    "devops@example.com"
-  ]
-
-  # CloudWatch log groups to monitor
-  log_group_subscriptions = [
-    "/aws/lambda/important-function",
-    "/aws/eks/my-cluster/application-logs"
-  ]
-
-  # Filter pattern (customize for your needs)
-  filter_pattern         = "{$.kubernetes.namespace_name = \"*\" && $.log = \"*error*\"}"
-
-  # Custom tags
-  tags = {
-    Environment = "Production"
-    Project     = "Monitoring"
-    ManagedBy   = "terraform"
-  }
-}
-```
-
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
 | Name | Version |
 |------|---------|
-| terraform | >= 1.0 |
-| aws | >= 4.9 |
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.0 |
+| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 4.9 |
+
+## Providers
+
+| Name | Version |
+|------|---------|
+| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 4.9 |
 
 ## Modules
 
 | Name | Source | Version |
 |------|--------|---------|
-| lambda_function | terraform-aws-modules/lambda/aws | ~> 7.21 |
-| sns | terraform-aws-modules/sns/aws | ~> 6.1 |
+| <a name="module_lambda_function"></a> [lambda\_function](#module\_lambda\_function) | terraform-aws-modules/lambda/aws | 7.21.0 |
+| <a name="module_sns"></a> [sns](#module\_sns) | terraform-aws-modules/sns/aws | 6.1.3 |
 
 ## Resources
 
 | Name | Type |
 |------|------|
-| aws_cloudwatch_log_subscription_filter.this | resource |
-| aws_lambda_permission.allow_cloudwatch | resource |
+| [aws_cloudwatch_log_subscription_filter.this](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/cloudwatch_log_subscription_filter) | resource |
+| [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
+| [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| create_lambda_function | Whether to create the Lambda function | `bool` | `true` | no |
-| enabled | Whether to enable all resources | `bool` | `true` | no |
-| create_sns_topic | Whether to create the SNS topic | `bool` | `true` | no |
-| create_cloudwatch_log_subscription_filter | Whether to create the CloudWatch log subscription filter | `bool` | `true` | no |
-| function_name | The name of the Lambda function | `string` | `"cloudwatch-logs-notifier"` | no |
-| cloudwatch_log_group_retention_in_days | The number of days to retain Lambda logs | `number` | `14` | no |
-| cloudwatch_log_group_kms_key_id | The ARN of the KMS Key to use when encrypting log data for Lambda | `string` | `null` | no |
-| sns_topic_name | The name of the SNS topic for notifications | `string` | `"cloudwatch-logs-notifications"` | no |
-| email_subscribers | List of email addresses to subscribe to the SNS topic | `list(string)` | `[]` | no |
-| log_group_subscriptions | List of CloudWatch log groups to subscribe to | `list(string)` | `[]` | no |
-| filter_pattern | The filter pattern to use for CloudWatch log subscriptions | `string` | `"{$.kubernetes.namespace_name = \"*\" && $.kubernetes.pod_name = \"*\" && $.kubernetes.container_name = \"*\" && $.log = \"*\"}"` | no |
-| tags | A map of tags to apply to all resources | `map(string)` | `{ "ManagedBy": "terraform" }` | no |
-| additional_policy_statements | Additional IAM policy statements to attach to the Lambda function | `any` | `{}` | no |
+| <a name="input_additional_policy_statements"></a> [additional\_policy\_statements](#input\_additional\_policy\_statements) | Additional IAM policy statements to attach to the Lambda function | `any` | `{}` | no |
+| <a name="input_cloudwatch_log_group_kms_key_id"></a> [cloudwatch\_log\_group\_kms\_key\_id](#input\_cloudwatch\_log\_group\_kms\_key\_id) | The ARN of the KMS Key to use when encrypting log data for Lambda | `string` | `null` | no |
+| <a name="input_cloudwatch_log_group_retention_in_days"></a> [cloudwatch\_log\_group\_retention\_in\_days](#input\_cloudwatch\_log\_group\_retention\_in\_days) | The number of days to retain Lambda logs | `number` | `14` | no |
+| <a name="input_create_cloudwatch_log_subscription_filter"></a> [create\_cloudwatch\_log\_subscription\_filter](#input\_create\_cloudwatch\_log\_subscription\_filter) | Whether to create the CloudWatch log subscription filter | `bool` | `true` | no |
+| <a name="input_create_lambda_function"></a> [create\_lambda\_function](#input\_create\_lambda\_function) | Whether to create the Lambda function | `bool` | `true` | no |
+| <a name="input_create_sns_topic"></a> [create\_sns\_topic](#input\_create\_sns\_topic) | Whether to create the SNS topic | `bool` | `true` | no |
+| <a name="input_email_subscribers"></a> [email\_subscribers](#input\_email\_subscribers) | List of email addresses to subscribe to the SNS topic | `list(string)` | `[]` | no |
+| <a name="input_enabled"></a> [enabled](#input\_enabled) | Whether to enable all resources | `bool` | `true` | no |
+| <a name="input_filter_pattern"></a> [filter\_pattern](#input\_filter\_pattern) | The filter pattern to use for CloudWatch log subscriptions | `string` | `"{$.kubernetes.namespace_name = \"*\" && $.kubernetes.pod_name = \"*\" && $.kubernetes.container_name = \"*\" && $.log = \"*\"}"` | no |
+| <a name="input_function_name"></a> [function\_name](#input\_function\_name) | The name of the Lambda function | `string` | `"cloudwatch-logs-notifier"` | no |
+| <a name="input_log_group_subscriptions"></a> [log\_group\_subscriptions](#input\_log\_group\_subscriptions) | List of CloudWatch log groups to subscribe to | `list(string)` | `[]` | no |
+| <a name="input_sns_topic_name"></a> [sns\_topic\_name](#input\_sns\_topic\_name) | The name of the SNS topic for notifications | `string` | `"cloudwatch-logs-notifications"` | no |
+| <a name="input_tags"></a> [tags](#input\_tags) | A map of tags to apply to all resources | `map(string)` | <pre>{<br/>  "ManagedBy": "terraform"<br/>}</pre> | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| lambda_function_arn | The ARN of the Lambda function |
-| lambda_function_name | The name of the Lambda function |
-| lambda_function_invoke_arn | The invocation ARN of the Lambda function |
-| cloudwatch_log_group_name | The name of the CloudWatch log group for the Lambda function |
-| sns_topic_arn | The ARN of the SNS topic for CloudWatch log notifications |
-| sns_topic_name | The name of the SNS topic for CloudWatch log notifications |
-| lambda_role_arn | The ARN of the IAM role used by the Lambda function |
-| lambda_role_name | The name of the IAM role used by the Lambda function |
+| <a name="output_cloudwatch_log_group_name"></a> [cloudwatch\_log\_group\_name](#output\_cloudwatch\_log\_group\_name) | The name of the CloudWatch log group for the Lambda function |
+| <a name="output_lambda_function_arn"></a> [lambda\_function\_arn](#output\_lambda\_function\_arn) | The ARN of the Lambda function |
+| <a name="output_lambda_function_invoke_arn"></a> [lambda\_function\_invoke\_arn](#output\_lambda\_function\_invoke\_arn) | The invocation ARN of the Lambda function |
+| <a name="output_lambda_function_name"></a> [lambda\_function\_name](#output\_lambda\_function\_name) | The name of the Lambda function |
+| <a name="output_lambda_role_arn"></a> [lambda\_role\_arn](#output\_lambda\_role\_arn) | The ARN of the IAM role used by the Lambda function |
+| <a name="output_lambda_role_name"></a> [lambda\_role\_name](#output\_lambda\_role\_name) | The name of the IAM role used by the Lambda function |
+| <a name="output_sns_topic_arn"></a> [sns\_topic\_arn](#output\_sns\_topic\_arn) | The ARN of the SNS topic for CloudWatch log notifications |
+| <a name="output_sns_topic_name"></a> [sns\_topic\_name](#output\_sns\_topic\_name) | The name of the SNS topic for CloudWatch log notifications |
 <!-- END_TF_DOCS -->
-
-## How It Works
-
-1. CloudWatch Logs subscription filters are created for the specified log groups
-2. When a log matches the filter pattern, it's sent to the Lambda function
-3. The Lambda function processes the log data:
-   - Extracts useful information from the log message
-   - Formats it into a readable notification
-   - Sends the notification to the SNS topic
-4. The SNS topic delivers the notification to all subscribed email addresses
-
-## License
-
-MIT
