@@ -29,7 +29,7 @@ The module can send CloudWatch Logs alerts to email subscribers through Amazon S
 ```hcl
 module "cloudwatch_logs_notifier" {
   source = "github.com/username/terraform-aws-module-cloudwatchlog-notify"
-  
+
   email_subscribers = ["alerts@example.com", "team@example.com"]
   email_subject     = "AWS CloudWatch Alert"  # Customize the email subject
   log_group_subscriptions = ["/aws/lambda/my-function", "/aws/eks/my-cluster/cluster"]
@@ -43,12 +43,12 @@ The module can also send CloudWatch Logs alerts to Slack channels through webhoo
 ```hcl
 module "cloudwatch_logs_notifier" {
   source = "github.com/username/terraform-aws-module-cloudwatchlog-notify"
-  
+
   enable_slack_notifications = true
   slack_webhook_url = "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
   slack_channel = "#alerts"
   slack_username = "CloudWatch Logs Bot"
-  
+
   log_group_subscriptions = ["/aws/lambda/my-function", "/aws/eks/my-cluster/cluster"]
 }
 ```
@@ -60,16 +60,16 @@ The module can create a dedicated SNS topic for CloudWatch Alarms to trigger the
 ```hcl
 module "cloudwatch_logs_notifier" {
   source = "github.com/username/terraform-aws-module-cloudwatchlog-notify"
-  
+
   # Enable CloudWatch Alarm SNS Topic
   create_cloudwatch_alarm_sns_topic = true
   cloudwatch_alarm_sns_topic_name   = "my-alarm-topic"
-  
+
   # Configure notification channels
   enable_slack_notifications = true
   slack_webhook_url = "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
   slack_channel = "#alerts"
-  
+
   email_subscribers = ["alerts@example.com"]
 }
 
@@ -86,7 +86,7 @@ resource "aws_cloudwatch_metric_alarm" "example" {
   alarm_description   = "This metric monitors Lambda function CPU utilization"
   alarm_actions       = [module.cloudwatch_logs_notifier.cloudwatch_alarm_sns_topic_arn]
   ok_actions          = [module.cloudwatch_logs_notifier.cloudwatch_alarm_sns_topic_arn]
-  
+
   dimensions = {
     FunctionName = "my-lambda-function"
   }

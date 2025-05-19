@@ -47,4 +47,3 @@ output "lambda_role_name" {
   description = "The name of the IAM role used by the Lambda function"
   value       = module.lambda_function.lambda_role_name
 }
-

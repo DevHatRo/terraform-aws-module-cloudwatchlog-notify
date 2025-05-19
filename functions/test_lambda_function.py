@@ -279,7 +279,7 @@ class TestLambdaFunction(unittest.TestCase):
         request_args = mock_request.call_args[1]
         self.assertEqual(request_args['headers'], {'Content-Type': 'application/json'})
         self.assertEqual(request_args['url'], os.environ['SLACK_WEBHOOK_URL'])
-        
+
         # Parse the data to check fields
         data = json.loads(request_args['data'].decode('utf-8'))
         self.assertEqual(data['channel'], '#test-channel')
@@ -390,7 +390,7 @@ class TestLambdaFunction(unittest.TestCase):
                 "Threshold": 80.0
             }
         }
-        
+
         # Wrap it in an SNS event
         sns_message = json.dumps(cloudwatch_alarm)
         event = {
@@ -424,14 +424,14 @@ class TestLambdaFunction(unittest.TestCase):
 
         # Check if SNS publish was called
         mock_sns_client.publish.assert_called_once()
-        
+
         # Verify the correct subject was used
         self.assertEqual(mock_sns_client.publish.call_args[1]['Subject'], 'CloudWatch Alert')
 
         # Check the response
         self.assertEqual(result['statusCode'], 200)
         self.assertEqual(json.loads(result['body']), 'Successfully processed CloudWatch Logs')
-        
+
     @patch('lambda_function.sns_client')
     @patch('lambda_function.urllib.request.Request')
     @patch('lambda_function.urllib.request.urlopen')
@@ -473,7 +473,7 @@ class TestLambdaFunction(unittest.TestCase):
                 "Threshold": 80.0
             }
         }
-        
+
         # Wrap it in an SNS event
         sns_message = json.dumps(cloudwatch_alarm)
         event = {
@@ -513,18 +513,18 @@ class TestLambdaFunction(unittest.TestCase):
         request_args = mock_request.call_args[1]
         self.assertEqual(request_args['headers'], {'Content-Type': 'application/json'})
         self.assertEqual(request_args['url'], os.environ['SLACK_WEBHOOK_URL'])
-        
+
         # Parse the data to check fields
         data = json.loads(request_args['data'].decode('utf-8'))
         self.assertEqual(data['channel'], '#test-channel')
         self.assertEqual(data['username'], 'CloudWatch-Bot')
         self.assertTrue('attachments' in data)
-        
+
         # Verify the alarm specific fields
         attachment = data['attachments'][0]
         self.assertEqual(attachment['color'], 'danger')  # ALARM state
         self.assertEqual(attachment['title'], 'CloudWatch Alarm: test-alarm')
-        
+
         # Find fields by title
         fields = attachment['fields']
         state_field = next((f for f in fields if f['title'] == 'State'), None)

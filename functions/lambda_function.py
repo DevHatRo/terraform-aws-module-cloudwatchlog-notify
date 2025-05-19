@@ -41,7 +41,7 @@ def lambda_handler(event, context):
                     try:
                         # Try to parse the message as JSON
                         sns_data = json.loads(sns_message)
-                        
+
                         # Check if this is a CloudWatch Alarm
                         if 'AlarmName' in sns_data:
                             logger.info("Processing CloudWatch Alarm notification")
@@ -89,7 +89,7 @@ def process_cloudwatch_alarm(alarm_data, sns_arn):
         alarm_reason = alarm_data.get('NewStateReason', 'No reason provided')
         alarm_state = alarm_data.get('NewStateValue', 'UNKNOWN')
         region = alarm_data.get('Region', 'unknown-region')
-        
+
         # Create notification message for email
         notification_message = (
             f"CloudWatch Alarm: {alarm_name}\n\n"
@@ -126,12 +126,12 @@ def process_cloudwatch_alarm(alarm_data, sns_arn):
                 slack_channel = os.environ.get('SLACK_CHANNEL')
                 if slack_channel:
                     slack_message['channel'] = slack_channel
-                
+
                 # Add username if specified
                 slack_username = os.environ.get('SLACK_USERNAME')
                 if slack_username:
                     slack_message['username'] = slack_username
-                
+
                 send_to_slack(slack_message, slack_webhook_url)
 
     except Exception as e:
@@ -148,7 +148,7 @@ def process_generic_sns_message(sns_data, sns_arn):
     try:
         # Create a simple message from the data
         notification_message = f"SNS Notification:\n\n{json.dumps(sns_data, indent=2)}"
-        
+
         # Create Slack message
         slack_message = {
             "attachments": [{
@@ -169,14 +169,14 @@ def process_generic_sns_message(sns_data, sns_arn):
                 slack_channel = os.environ.get('SLACK_CHANNEL')
                 if slack_channel:
                     slack_message['channel'] = slack_channel
-                
+
                 # Add username if specified
                 slack_username = os.environ.get('SLACK_USERNAME')
                 if slack_username:
                     slack_message['username'] = slack_username
-                
+
                 send_to_slack(slack_message, slack_webhook_url)
-    
+
     except Exception as e:
         logger.error("Error processing generic SNS message: %s", str(e))
 
@@ -304,12 +304,12 @@ def process_cloudwatch_log_event(event, sns_arn):
                     slack_channel = os.environ.get('SLACK_CHANNEL')
                     if slack_channel:
                         slack_message['channel'] = slack_channel
-                    
+
                     # Add username if specified
                     slack_username = os.environ.get('SLACK_USERNAME')
                     if slack_username:
                         slack_message['username'] = slack_username
-                    
+
                     send_to_slack(slack_message, slack_webhook_url)
 
         except Exception as e:
@@ -326,7 +326,7 @@ def send_to_sns(message, sns_arn):
     try:
         # Get email subject from environment variable with fallback
         email_subject = os.environ.get('EMAIL_SUBJECT', 'CloudWatch Alert')
-        
+
         response = sns_client.publish(
             TopicArn=sns_arn,
             Message=message,
@@ -348,7 +348,7 @@ def send_to_slack(message, webhook_url):
         data = json.dumps(message).encode('utf-8')
         headers = {'Content-Type': 'application/json'}
         req = urllib.request.Request(webhook_url, data=data, headers=headers)
-        
+
         with urllib.request.urlopen(req) as response:
             if response.status != 200:
                 logger.error("Failed to send message to Slack. Status code: %s", response.status)
