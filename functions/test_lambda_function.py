@@ -278,7 +278,7 @@ class TestLambdaFunction(unittest.TestCase):
         # Verify that the Slack message contains the expected fields
         mock_request.assert_called_with(
             os.environ['SLACK_WEBHOOK_URL'],
-            json.dumps({
+            data=json.dumps({
                 'channel': '#test-channel',
                 'username': 'CloudWatch-Bot',
                 'attachments': [{
@@ -291,7 +291,7 @@ class TestLambdaFunction(unittest.TestCase):
                     ]
                 }]
             }).encode('utf-8'),
-            {'Content-Type': 'application/json'}
+            headers={'Content-Type': 'application/json'}
         )
 
         # Check the response
@@ -521,7 +521,7 @@ class TestLambdaFunction(unittest.TestCase):
         # Verify that the Slack message contains the expected fields
         mock_request.assert_called_with(
             os.environ['SLACK_WEBHOOK_URL'],
-            json.dumps({
+            data=json.dumps({
                 'channel': '#test-channel',
                 'username': 'CloudWatch-Bot',
                 'attachments': [{
@@ -535,7 +535,7 @@ class TestLambdaFunction(unittest.TestCase):
                     ]
                 }]
             }).encode('utf-8'),
-            {'Content-Type': 'application/json'}
+            headers={'Content-Type': 'application/json'}
         )
 
         # Check the response
