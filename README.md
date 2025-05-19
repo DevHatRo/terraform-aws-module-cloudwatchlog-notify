@@ -111,6 +111,7 @@ resource "aws_cloudwatch_metric_alarm" "example" {
 
 | Name | Source | Version |
 |------|--------|---------|
+| <a name="module_cloudwatch_alarm_sns"></a> [cloudwatch\_alarm\_sns](#module\_cloudwatch\_alarm\_sns) | terraform-aws-modules/sns/aws | 6.1.3 |
 | <a name="module_lambda_function"></a> [lambda\_function](#module\_lambda\_function) | terraform-aws-modules/lambda/aws | 7.21.0 |
 | <a name="module_sns"></a> [sns](#module\_sns) | terraform-aws-modules/sns/aws | 6.1.3 |
 
@@ -134,6 +135,7 @@ resource "aws_cloudwatch_metric_alarm" "example" {
 | <a name="input_create_cloudwatch_log_subscription_filter"></a> [create\_cloudwatch\_log\_subscription\_filter](#input\_create\_cloudwatch\_log\_subscription\_filter) | Whether to create the CloudWatch log subscription filter | `bool` | `true` | no |
 | <a name="input_create_lambda_function"></a> [create\_lambda\_function](#input\_create\_lambda\_function) | Whether to create the Lambda function | `bool` | `true` | no |
 | <a name="input_create_sns_topic"></a> [create\_sns\_topic](#input\_create\_sns\_topic) | Whether to create the SNS topic | `bool` | `true` | no |
+| <a name="input_email_subject"></a> [email\_subject](#input\_email\_subject) | The subject line to use for email notifications | `string` | `"CloudWatch Alert"` | no |
 | <a name="input_email_subscribers"></a> [email\_subscribers](#input\_email\_subscribers) | List of email addresses to subscribe to the SNS topic | `list(string)` | `[]` | no |
 | <a name="input_enable_slack_notifications"></a> [enable\_slack\_notifications](#input\_enable\_slack\_notifications) | Whether to enable Slack notifications | `bool` | `false` | no |
 | <a name="input_enabled"></a> [enabled](#input\_enabled) | Whether to enable all resources | `bool` | `true` | no |
