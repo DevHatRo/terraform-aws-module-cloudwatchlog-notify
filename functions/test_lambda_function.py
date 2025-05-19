@@ -276,33 +276,23 @@ class TestLambdaFunction(unittest.TestCase):
         mock_urlopen.assert_called_once()
 
         # Verify that the Slack message contains the expected fields
-        call_args = mock_request.call_args
-        self.assertIsNotNone(call_args)
-        
-        # Get the positional arguments
-        args, kwargs = call_args
-        self.assertEqual(args[0], os.environ['SLACK_WEBHOOK_URL'])
-        
-        # Verify the request data
-        data = json.loads(args[1].decode('utf-8'))
-        self.assertEqual(data['channel'], '#test-channel')
-        self.assertEqual(data['username'], 'CloudWatch-Bot')
-        self.assertTrue('attachments' in data)
-        
-        # Verify the attachment structure
-        attachment = data['attachments'][0]
-        self.assertEqual(attachment['color'], 'danger')
-        self.assertEqual(attachment['title'], 'Error in /aws/lambda/test-function')
-        
-        # Verify the fields
-        fields = attachment['fields']
-        self.assertEqual(len(fields), 3)
-        self.assertEqual(fields[0]['title'], 'Log Group')
-        self.assertEqual(fields[0]['value'], '/aws/lambda/test-function')
-        self.assertEqual(fields[1]['title'], 'Log Stream')
-        self.assertEqual(fields[1]['value'], 'test-stream')
-        self.assertEqual(fields[2]['title'], 'Message')
-        self.assertEqual(fields[2]['value'], 'This is a test error message')
+        mock_request.assert_called_with(
+            os.environ['SLACK_WEBHOOK_URL'],
+            json.dumps({
+                'channel': '#test-channel',
+                'username': 'CloudWatch-Bot',
+                'attachments': [{
+                    'color': 'danger',
+                    'title': 'Error in /aws/lambda/test-function',
+                    'fields': [
+                        {'title': 'Log Group', 'value': '/aws/lambda/test-function', 'short': True},
+                        {'title': 'Log Stream', 'value': 'test-stream', 'short': True},
+                        {'title': 'Message', 'value': 'This is a test error message', 'short': False}
+                    ]
+                }]
+            }).encode('utf-8'),
+            {'Content-Type': 'application/json'}
+        )
 
         # Check the response
         self.assertEqual(result['statusCode'], 200)
@@ -529,29 +519,24 @@ class TestLambdaFunction(unittest.TestCase):
         mock_urlopen.assert_called_once()
 
         # Verify that the Slack message contains the expected fields
-        call_args = mock_request.call_args
-        self.assertIsNotNone(call_args)
-        
-        # Get the positional arguments
-        args, kwargs = call_args
-        self.assertEqual(args[0], os.environ['SLACK_WEBHOOK_URL'])
-        
-        # Verify the request data
-        data = json.loads(args[1].decode('utf-8'))
-        self.assertEqual(data['channel'], '#test-channel')
-        self.assertEqual(data['username'], 'CloudWatch-Bot')
-        self.assertTrue('attachments' in data)
-        
-        # Verify the alarm specific fields
-        attachment = data['attachments'][0]
-        self.assertEqual(attachment['color'], 'danger')  # ALARM state
-        self.assertEqual(attachment['title'], 'CloudWatch Alarm: test-alarm')
-        
-        # Find fields by title
-        fields = attachment['fields']
-        state_field = next((f for f in fields if f['title'] == 'State'), None)
-        self.assertIsNotNone(state_field)
-        self.assertEqual(state_field['value'], 'ALARM')
+        mock_request.assert_called_with(
+            os.environ['SLACK_WEBHOOK_URL'],
+            json.dumps({
+                'channel': '#test-channel',
+                'username': 'CloudWatch-Bot',
+                'attachments': [{
+                    'color': 'danger',
+                    'title': 'CloudWatch Alarm: test-alarm',
+                    'fields': [
+                        {'title': 'State', 'value': 'ALARM', 'short': True},
+                        {'title': 'Region', 'value': 'us-east-1', 'short': True},
+                        {'title': 'Description', 'value': 'This is a test alarm', 'short': False},
+                        {'title': 'Reason', 'value': 'Threshold Crossed', 'short': False}
+                    ]
+                }]
+            }).encode('utf-8'),
+            {'Content-Type': 'application/json'}
+        )
 
         # Check the response
         self.assertEqual(result['statusCode'], 200)
