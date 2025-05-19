@@ -54,9 +54,12 @@ def lambda_handler(event, context):
                                 logger.info("Processing generic SNS notification")
                                 process_generic_sns_message(sns_data, sns_arn)
                         except json.JSONDecodeError:
-                            # If not JSON, process as plain text
-                            logger.info("Processing plain text SNS notification")
-                            process_generic_sns_message(sns_message, sns_arn)
+                            # If not JSON, return error
+                            logger.error("Failed to parse SNS message as JSON: %s", sns_message)
+                            return {
+                                'statusCode': 400,
+                                'body': json.dumps('Invalid SNS message format')
+                            }
                     except Exception as e:
                         logger.error("Error processing SNS message: %s", str(e))
                         return {
