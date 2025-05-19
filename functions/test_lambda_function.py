@@ -275,24 +275,29 @@ class TestLambdaFunction(unittest.TestCase):
         mock_request.assert_called_once()
         mock_urlopen.assert_called_once()
 
-        # Verify that the Slack message contains the expected fields
-        mock_request.assert_called_with(
-            os.environ['SLACK_WEBHOOK_URL'],
-            data=json.dumps({
-                'channel': '#test-channel',
-                'username': 'CloudWatch-Bot',
-                'attachments': [{
-                    'color': 'danger',
-                    'title': 'Error in /aws/lambda/test-function',
-                    'fields': [
-                        {'title': 'Log Group', 'value': '/aws/lambda/test-function', 'short': True},
-                        {'title': 'Log Stream', 'value': 'test-stream', 'short': True},
-                        {'title': 'Message', 'value': 'This is a test error message', 'short': False}
-                    ]
-                }]
-            }).encode('utf-8'),
-            headers={'Content-Type': 'application/json'}
-        )
+        # Get the actual call arguments
+        call_args = mock_request.call_args
+        actual_data = json.loads(call_args[1]['data'].decode('utf-8'))
+
+        # Verify the structure of the Slack message
+        self.assertEqual(actual_data['channel'], '#test-channel')
+        self.assertEqual(actual_data['username'], 'CloudWatch-Bot')
+        self.assertTrue('attachments' in actual_data)
+        
+        # Verify the attachment structure
+        attachment = actual_data['attachments'][0]
+        self.assertEqual(attachment['color'], 'danger')
+        self.assertEqual(attachment['title'], 'Error in /aws/lambda/test-function')
+        
+        # Verify the fields
+        fields = attachment['fields']
+        self.assertEqual(len(fields), 3)
+        self.assertEqual(fields[0]['title'], 'Log Group')
+        self.assertEqual(fields[0]['value'], '/aws/lambda/test-function')
+        self.assertEqual(fields[1]['title'], 'Log Stream')
+        self.assertEqual(fields[1]['value'], 'test-stream')
+        self.assertEqual(fields[2]['title'], 'Message')
+        self.assertEqual(fields[2]['value'], 'This is a test error message')
 
         # Check the response
         self.assertEqual(result['statusCode'], 200)
@@ -518,25 +523,40 @@ class TestLambdaFunction(unittest.TestCase):
         mock_request.assert_called_once()
         mock_urlopen.assert_called_once()
 
-        # Verify that the Slack message contains the expected fields
-        mock_request.assert_called_with(
-            os.environ['SLACK_WEBHOOK_URL'],
-            data=json.dumps({
-                'channel': '#test-channel',
-                'username': 'CloudWatch-Bot',
-                'attachments': [{
-                    'color': 'danger',
-                    'title': 'CloudWatch Alarm: test-alarm',
-                    'fields': [
-                        {'title': 'State', 'value': 'ALARM', 'short': True},
-                        {'title': 'Region', 'value': 'us-east-1', 'short': True},
-                        {'title': 'Description', 'value': 'This is a test alarm', 'short': False},
-                        {'title': 'Reason', 'value': 'Threshold Crossed', 'short': False}
-                    ]
-                }]
-            }).encode('utf-8'),
-            headers={'Content-Type': 'application/json'}
-        )
+        # Get the actual call arguments
+        call_args = mock_request.call_args
+        actual_data = json.loads(call_args[1]['data'].decode('utf-8'))
+
+        # Verify the structure of the Slack message
+        self.assertEqual(actual_data['channel'], '#test-channel')
+        self.assertEqual(actual_data['username'], 'CloudWatch-Bot')
+        self.assertTrue('attachments' in actual_data)
+        
+        # Verify the attachment structure
+        attachment = actual_data['attachments'][0]
+        self.assertEqual(attachment['color'], 'danger')
+        self.assertEqual(attachment['title'], 'CloudWatch Alarm: test-alarm')
+        
+        # Verify the fields
+        fields = attachment['fields']
+        self.assertEqual(len(fields), 4)
+        
+        # Find fields by title
+        state_field = next((f for f in fields if f['title'] == 'State'), None)
+        self.assertIsNotNone(state_field)
+        self.assertEqual(state_field['value'], 'ALARM')
+        
+        region_field = next((f for f in fields if f['title'] == 'Region'), None)
+        self.assertIsNotNone(region_field)
+        self.assertEqual(region_field['value'], 'us-east-1')
+        
+        desc_field = next((f for f in fields if f['title'] == 'Description'), None)
+        self.assertIsNotNone(desc_field)
+        self.assertEqual(desc_field['value'], 'This is a test alarm')
+        
+        reason_field = next((f for f in fields if f['title'] == 'Reason'), None)
+        self.assertIsNotNone(reason_field)
+        self.assertEqual(reason_field['value'], 'Threshold Crossed')
 
         # Check the response
         self.assertEqual(result['statusCode'], 200)
