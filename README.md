@@ -1,3 +1,98 @@
+# CloudWatch Logs Notification Module for AWS
+
+[![codecov](https://codecov.io/gh/DevHatRo/terraform-aws-module-cloudwatchlog-notify/graph/badge.svg?token=UPRDDCJZ1P)](https://codecov.io/gh/DevHatRo/terraform-aws-module-cloudwatchlog-notify)
+
+This Terraform module deploys a complete solution for receiving CloudWatch Logs events and sending notifications through SNS.
+
+## Architecture
+
+This module sets up:
+
+1. A Lambda function that processes CloudWatch Logs events
+2. An SNS topic that receives notifications from the Lambda function
+3. CloudWatch Logs subscription filters for the specified log groups
+4. All necessary IAM permissions and policies
+
+The Lambda function supports:
+- Processing CloudWatch Logs events directly
+- Processing events via SNS
+- Parsing JSON log messages, including Kubernetes logs
+- Custom formatting for different log types
+- Processing CloudWatch Alarm notifications
+
+## Features
+
+### Email Notifications
+
+The module can send CloudWatch Logs alerts to email subscribers through Amazon SNS.
+
+```hcl
+module "cloudwatch_logs_notifier" {
+  source = "github.com/username/terraform-aws-module-cloudwatchlog-notify"
+
+  email_subscribers = ["alerts@example.com", "team@example.com"]
+  email_subject     = "AWS CloudWatch Alert"  # Customize the email subject
+  log_group_subscriptions = ["/aws/lambda/my-function", "/aws/eks/my-cluster/cluster"]
+}
+```
+
+### Slack Notifications
+
+The module can also send CloudWatch Logs alerts to Slack channels through webhooks.
+
+```hcl
+module "cloudwatch_logs_notifier" {
+  source = "github.com/username/terraform-aws-module-cloudwatchlog-notify"
+
+  enable_slack_notifications = true
+  slack_webhook_url = "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
+  slack_channel = "#alerts"
+  slack_username = "CloudWatch Logs Bot"
+
+  log_group_subscriptions = ["/aws/lambda/my-function", "/aws/eks/my-cluster/cluster"]
+}
+```
+
+### CloudWatch Alarm SNS Topic
+
+The module can create a dedicated SNS topic for CloudWatch Alarms to trigger the Lambda function. This allows you to have your CloudWatch Alarms send notifications through the same pipeline as your CloudWatch Logs.
+
+```hcl
+module "cloudwatch_logs_notifier" {
+  source = "github.com/username/terraform-aws-module-cloudwatchlog-notify"
+
+  # Enable CloudWatch Alarm SNS Topic
+  create_cloudwatch_alarm_sns_topic = true
+  cloudwatch_alarm_sns_topic_name   = "my-alarm-topic"
+
+  # Configure notification channels
+  enable_slack_notifications = true
+  slack_webhook_url = "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
+  slack_channel = "#alerts"
+
+  email_subscribers = ["alerts@example.com"]
+}
+
+# Example CloudWatch Alarm that sends to the CloudWatch Alarm SNS topic
+resource "aws_cloudwatch_metric_alarm" "example" {
+  alarm_name          = "example-high-cpu-alarm"
+  comparison_operator = "GreaterThanOrEqualToThreshold"
+  evaluation_periods  = 2
+  metric_name         = "CPUUtilization"
+  namespace           = "AWS/Lambda"
+  period              = 60
+  statistic           = "Average"
+  threshold           = 80
+  alarm_description   = "This metric monitors Lambda function CPU utilization"
+  alarm_actions       = [module.cloudwatch_logs_notifier.cloudwatch_alarm_sns_topic_arn]
+  ok_actions          = [module.cloudwatch_logs_notifier.cloudwatch_alarm_sns_topic_arn]
+
+  dimensions = {
+    FunctionName = "my-lambda-function"
+  }
+}
+```
+
 <!-- BEGIN_TF_DOCS -->
 ## Requirements
 
@@ -16,7 +111,6 @@
 
 | Name | Source | Version |
 |------|--------|---------|
-| <a name="module_cloudwatch_alarm_sns"></a> [cloudwatch\_alarm\_sns](#module\_cloudwatch\_alarm\_sns) | terraform-aws-modules/sns/aws | 6.1.3 |
 | <a name="module_lambda_function"></a> [lambda\_function](#module\_lambda\_function) | terraform-aws-modules/lambda/aws | 7.21.0 |
 | <a name="module_sns"></a> [sns](#module\_sns) | terraform-aws-modules/sns/aws | 6.1.3 |
 
@@ -40,7 +134,6 @@
 | <a name="input_create_cloudwatch_log_subscription_filter"></a> [create\_cloudwatch\_log\_subscription\_filter](#input\_create\_cloudwatch\_log\_subscription\_filter) | Whether to create the CloudWatch log subscription filter | `bool` | `true` | no |
 | <a name="input_create_lambda_function"></a> [create\_lambda\_function](#input\_create\_lambda\_function) | Whether to create the Lambda function | `bool` | `true` | no |
 | <a name="input_create_sns_topic"></a> [create\_sns\_topic](#input\_create\_sns\_topic) | Whether to create the SNS topic | `bool` | `true` | no |
-| <a name="input_email_subject"></a> [email\_subject](#input\_email\_subject) | The subject line to use for email notifications | `string` | `"CloudWatch Alert"` | no |
 | <a name="input_email_subscribers"></a> [email\_subscribers](#input\_email\_subscribers) | List of email addresses to subscribe to the SNS topic | `list(string)` | `[]` | no |
 | <a name="input_enable_slack_notifications"></a> [enable\_slack\_notifications](#input\_enable\_slack\_notifications) | Whether to enable Slack notifications | `bool` | `false` | no |
 | <a name="input_enabled"></a> [enabled](#input\_enabled) | Whether to enable all resources | `bool` | `true` | no |
