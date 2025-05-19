@@ -338,7 +338,7 @@ def process_log_event(log_event, log_group, log_stream):
     """Process a single log event and send notifications if it contains an error"""
     try:
         message = log_event['message']
-        
+
         # Try to parse the message as JSON
         try:
             json_message = json.loads(message)
@@ -369,7 +369,7 @@ def process_log_event(log_event, log_group, log_stream):
                 'message': message,
                 'timestamp': log_event['timestamp']
             }
-            
+
             # Add context if available
             if context:
                 sns_message['context'] = context
