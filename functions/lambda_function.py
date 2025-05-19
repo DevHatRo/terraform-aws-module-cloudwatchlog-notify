@@ -472,4 +472,4 @@ def send_to_slack(message, webhook_url):
                 logger.info("Message sent to Slack successfully")
     except Exception as e:
         logger.error("Error sending message to Slack: %s", str(e))
-        raise  # Re-raise the exception to be caught by the caller
+        # Don't re-raise the exception to allow the function to continue
