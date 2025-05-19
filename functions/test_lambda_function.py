@@ -283,12 +283,12 @@ class TestLambdaFunction(unittest.TestCase):
         self.assertEqual(actual_data['channel'], '#test-channel')
         self.assertEqual(actual_data['username'], 'CloudWatch-Bot')
         self.assertTrue('attachments' in actual_data)
-        
+
         # Verify the attachment structure
         attachment = actual_data['attachments'][0]
         self.assertEqual(attachment['color'], 'danger')
         self.assertEqual(attachment['title'], 'Error in /aws/lambda/test-function')
-        
+
         # Verify the fields
         fields = attachment['fields']
         self.assertEqual(len(fields), 3)
@@ -404,7 +404,7 @@ class TestLambdaFunction(unittest.TestCase):
                 "Threshold": 80.0
             }
         }
-        
+
         # Wrap it in an SNS event
         sns_message = json.dumps(cloudwatch_alarm)
         event = {
@@ -438,7 +438,7 @@ class TestLambdaFunction(unittest.TestCase):
 
         # Check if SNS publish was called
         mock_sns_client.publish.assert_called_once()
-        
+
         # Verify the correct subject was used
         self.assertEqual(mock_sns_client.publish.call_args[1]['Subject'], 'CloudWatch Alert')
 
@@ -487,7 +487,7 @@ class TestLambdaFunction(unittest.TestCase):
                 "Threshold": 80.0
             }
         }
-        
+
         # Wrap it in an SNS event
         sns_message = json.dumps(cloudwatch_alarm)
         event = {
@@ -531,29 +531,29 @@ class TestLambdaFunction(unittest.TestCase):
         self.assertEqual(actual_data['channel'], '#test-channel')
         self.assertEqual(actual_data['username'], 'CloudWatch-Bot')
         self.assertTrue('attachments' in actual_data)
-        
+
         # Verify the attachment structure
         attachment = actual_data['attachments'][0]
         self.assertEqual(attachment['color'], 'danger')
         self.assertEqual(attachment['title'], 'CloudWatch Alarm: test-alarm')
-        
+
         # Verify the fields
         fields = attachment['fields']
         self.assertEqual(len(fields), 4)
-        
+
         # Find fields by title
         state_field = next((f for f in fields if f['title'] == 'State'), None)
         self.assertIsNotNone(state_field)
         self.assertEqual(state_field['value'], 'ALARM')
-        
+
         region_field = next((f for f in fields if f['title'] == 'Region'), None)
         self.assertIsNotNone(region_field)
         self.assertEqual(region_field['value'], 'us-east-1')
-        
+
         desc_field = next((f for f in fields if f['title'] == 'Description'), None)
         self.assertIsNotNone(desc_field)
         self.assertEqual(desc_field['value'], 'This is a test alarm')
-        
+
         reason_field = next((f for f in fields if f['title'] == 'Reason'), None)
         self.assertIsNotNone(reason_field)
         self.assertEqual(reason_field['value'], 'Threshold Crossed')
