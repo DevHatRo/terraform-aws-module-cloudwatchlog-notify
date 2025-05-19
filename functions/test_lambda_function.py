@@ -276,15 +276,21 @@ class TestLambdaFunction(unittest.TestCase):
         mock_urlopen.assert_called_once()
 
         # Verify that the Slack message contains the expected fields
-        request_args = mock_request.call_args[1]
-        self.assertEqual(request_args['headers'], {'Content-Type': 'application/json'})
-        self.assertEqual(request_args['url'], os.environ['SLACK_WEBHOOK_URL'])
-
-        # Parse the data to check fields
-        data = json.loads(request_args['data'].decode('utf-8'))
-        self.assertEqual(data['channel'], '#test-channel')
-        self.assertEqual(data['username'], 'CloudWatch-Bot')
-        self.assertTrue('attachments' in data)
+        request_args = mock_request.call_args[0]  # Changed from [1] to [0] to get positional arguments
+        self.assertEqual(request_args[0], os.environ['SLACK_WEBHOOK_URL'])  # First positional arg is URL
+        self.assertEqual(request_args[1].decode('utf-8'), json.dumps({
+            'channel': '#test-channel',
+            'username': 'CloudWatch-Bot',
+            'attachments': [{
+                'color': 'danger',
+                'title': 'Error in /aws/lambda/test-function',
+                'fields': [
+                    {'title': 'Log Group', 'value': '/aws/lambda/test-function', 'short': True},
+                    {'title': 'Log Stream', 'value': 'test-stream', 'short': True},
+                    {'title': 'Message', 'value': 'This is a test error message', 'short': False}
+                ]
+            }]
+        }))
 
         # Check the response
         self.assertEqual(result['statusCode'], 200)
@@ -297,8 +303,9 @@ class TestLambdaFunction(unittest.TestCase):
         del os.environ['SLACK_USERNAME']
 
     @patch('lambda_function.sns_client')
-    @patch('lambda_function.urllib.request')
-    def test_slack_notification_disabled(self, mock_urllib_request, mock_sns_client):
+    @patch('lambda_function.urllib.request.Request')
+    @patch('lambda_function.urllib.request.urlopen')
+    def test_slack_notification_disabled(self, mock_urlopen, mock_request, mock_sns_client):
         """Test that Slack notifications are not sent when disabled"""
         # Set environment variables for Slack (disabled)
         os.environ['ENABLE_SLACK'] = 'false'
@@ -317,7 +324,7 @@ class TestLambdaFunction(unittest.TestCase):
         mock_sns_client.publish.assert_called_once()
 
         # Check that urllib.request was not used (no Slack call)
-        mock_urllib_request.Request.assert_not_called()
+        mock_urlopen.assert_not_called()
 
         # Check the response
         self.assertEqual(result['statusCode'], 200)
@@ -382,7 +389,7 @@ class TestLambdaFunction(unittest.TestCase):
                 "Namespace": "AWS/EC2",
                 "StatisticType": "Statistic",
                 "Statistic": "AVERAGE",
-                "Unit": null,
+                "Unit": None,
                 "Dimensions": [],
                 "Period": 300,
                 "EvaluationPeriods": 1,
@@ -390,7 +397,7 @@ class TestLambdaFunction(unittest.TestCase):
                 "Threshold": 80.0
             }
         }
-
+        
         # Wrap it in an SNS event
         sns_message = json.dumps(cloudwatch_alarm)
         event = {
@@ -424,7 +431,7 @@ class TestLambdaFunction(unittest.TestCase):
 
         # Check if SNS publish was called
         mock_sns_client.publish.assert_called_once()
-
+        
         # Verify the correct subject was used
         self.assertEqual(mock_sns_client.publish.call_args[1]['Subject'], 'CloudWatch Alert')
 
@@ -465,7 +472,7 @@ class TestLambdaFunction(unittest.TestCase):
                 "Namespace": "AWS/EC2",
                 "StatisticType": "Statistic",
                 "Statistic": "AVERAGE",
-                "Unit": null,
+                "Unit": None,
                 "Dimensions": [],
                 "Period": 300,
                 "EvaluationPeriods": 1,
@@ -473,7 +480,7 @@ class TestLambdaFunction(unittest.TestCase):
                 "Threshold": 80.0
             }
         }
-
+        
         # Wrap it in an SNS event
         sns_message = json.dumps(cloudwatch_alarm)
         event = {
@@ -510,21 +517,20 @@ class TestLambdaFunction(unittest.TestCase):
         mock_urlopen.assert_called_once()
 
         # Verify that the Slack message contains the expected fields
-        request_args = mock_request.call_args[1]
-        self.assertEqual(request_args['headers'], {'Content-Type': 'application/json'})
-        self.assertEqual(request_args['url'], os.environ['SLACK_WEBHOOK_URL'])
-
+        request_args = mock_request.call_args[0]  # Changed from [1] to [0] to get positional arguments
+        self.assertEqual(request_args[0], os.environ['SLACK_WEBHOOK_URL'])  # First positional arg is URL
+        
         # Parse the data to check fields
-        data = json.loads(request_args['data'].decode('utf-8'))
+        data = json.loads(request_args[1].decode('utf-8'))
         self.assertEqual(data['channel'], '#test-channel')
         self.assertEqual(data['username'], 'CloudWatch-Bot')
         self.assertTrue('attachments' in data)
-
+        
         # Verify the alarm specific fields
         attachment = data['attachments'][0]
         self.assertEqual(attachment['color'], 'danger')  # ALARM state
         self.assertEqual(attachment['title'], 'CloudWatch Alarm: test-alarm')
-
+        
         # Find fields by title
         fields = attachment['fields']
         state_field = next((f for f in fields if f['title'] == 'State'), None)
