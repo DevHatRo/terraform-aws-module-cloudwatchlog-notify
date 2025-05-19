@@ -23,7 +23,7 @@ jobs:
         id: tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WITH_V: false
+          WITH_V: true
           DEFAULT_BUMP: minor
 
       - name: Create Release
