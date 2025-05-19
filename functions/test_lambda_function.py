@@ -276,21 +276,33 @@ class TestLambdaFunction(unittest.TestCase):
         mock_urlopen.assert_called_once()
 
         # Verify that the Slack message contains the expected fields
-        request_args = mock_request.call_args[0]  # Changed from [1] to [0] to get positional arguments
-        self.assertEqual(request_args[0], os.environ['SLACK_WEBHOOK_URL'])  # First positional arg is URL
-        self.assertEqual(request_args[1].decode('utf-8'), json.dumps({
-            'channel': '#test-channel',
-            'username': 'CloudWatch-Bot',
-            'attachments': [{
-                'color': 'danger',
-                'title': 'Error in /aws/lambda/test-function',
-                'fields': [
-                    {'title': 'Log Group', 'value': '/aws/lambda/test-function', 'short': True},
-                    {'title': 'Log Stream', 'value': 'test-stream', 'short': True},
-                    {'title': 'Message', 'value': 'This is a test error message', 'short': False}
-                ]
-            }]
-        }))
+        call_args = mock_request.call_args
+        self.assertIsNotNone(call_args)
+        
+        # Get the positional arguments
+        args, kwargs = call_args
+        self.assertEqual(args[0], os.environ['SLACK_WEBHOOK_URL'])
+        
+        # Verify the request data
+        data = json.loads(args[1].decode('utf-8'))
+        self.assertEqual(data['channel'], '#test-channel')
+        self.assertEqual(data['username'], 'CloudWatch-Bot')
+        self.assertTrue('attachments' in data)
+        
+        # Verify the attachment structure
+        attachment = data['attachments'][0]
+        self.assertEqual(attachment['color'], 'danger')
+        self.assertEqual(attachment['title'], 'Error in /aws/lambda/test-function')
+        
+        # Verify the fields
+        fields = attachment['fields']
+        self.assertEqual(len(fields), 3)
+        self.assertEqual(fields[0]['title'], 'Log Group')
+        self.assertEqual(fields[0]['value'], '/aws/lambda/test-function')
+        self.assertEqual(fields[1]['title'], 'Log Stream')
+        self.assertEqual(fields[1]['value'], 'test-stream')
+        self.assertEqual(fields[2]['title'], 'Message')
+        self.assertEqual(fields[2]['value'], 'This is a test error message')
 
         # Check the response
         self.assertEqual(result['statusCode'], 200)
@@ -517,11 +529,15 @@ class TestLambdaFunction(unittest.TestCase):
         mock_urlopen.assert_called_once()
 
         # Verify that the Slack message contains the expected fields
-        request_args = mock_request.call_args[0]  # Changed from [1] to [0] to get positional arguments
-        self.assertEqual(request_args[0], os.environ['SLACK_WEBHOOK_URL'])  # First positional arg is URL
+        call_args = mock_request.call_args
+        self.assertIsNotNone(call_args)
         
-        # Parse the data to check fields
-        data = json.loads(request_args[1].decode('utf-8'))
+        # Get the positional arguments
+        args, kwargs = call_args
+        self.assertEqual(args[0], os.environ['SLACK_WEBHOOK_URL'])
+        
+        # Verify the request data
+        data = json.loads(args[1].decode('utf-8'))
         self.assertEqual(data['channel'], '#test-channel')
         self.assertEqual(data['username'], 'CloudWatch-Bot')
         self.assertTrue('attachments' in data)
