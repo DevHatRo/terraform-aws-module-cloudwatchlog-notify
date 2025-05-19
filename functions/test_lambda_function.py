@@ -480,7 +480,12 @@ class TestLambdaFunction(unittest.TestCase):
                 "StatisticType": "Statistic",
                 "Statistic": "AVERAGE",
                 "Unit": None,
-                "Dimensions": [],
+                "Dimensions": [
+                    {
+                        "name": "InstanceId",
+                        "value": "i-1234567890abcdef0"
+                    }
+                ],
                 "Period": 300,
                 "EvaluationPeriods": 1,
                 "ComparisonOperator": "GreaterThanThreshold",
@@ -539,12 +544,16 @@ class TestLambdaFunction(unittest.TestCase):
 
         # Verify the fields
         fields = attachment['fields']
-        self.assertEqual(len(fields), 4)
+        self.assertEqual(len(fields), 8)  # Updated number of fields
 
         # Find fields by title
-        state_field = next((f for f in fields if f['title'] == 'State'), None)
-        self.assertIsNotNone(state_field)
-        self.assertEqual(state_field['value'], 'ALARM')
+        status_field = next((f for f in fields if f['title'] == 'Status'), None)
+        self.assertIsNotNone(status_field)
+        self.assertEqual(status_field['value'], 'ALARM (Previous: OK)')
+
+        time_field = next((f for f in fields if f['title'] == 'Time'), None)
+        self.assertIsNotNone(time_field)
+        self.assertEqual(time_field['value'], '2023-01-01T00:00:00.000+0000')
 
         region_field = next((f for f in fields if f['title'] == 'Region'), None)
         self.assertIsNotNone(region_field)
@@ -557,6 +566,18 @@ class TestLambdaFunction(unittest.TestCase):
         reason_field = next((f for f in fields if f['title'] == 'Reason'), None)
         self.assertIsNotNone(reason_field)
         self.assertEqual(reason_field['value'], 'Threshold Crossed')
+
+        metric_field = next((f for f in fields if f['title'] == 'Metric'), None)
+        self.assertIsNotNone(metric_field)
+        self.assertEqual(metric_field['value'], 'AWS/EC2/CPUUtilization')
+
+        threshold_field = next((f for f in fields if f['title'] == 'Threshold'), None)
+        self.assertIsNotNone(threshold_field)
+        self.assertEqual(threshold_field['value'], 'GreaterThanThreshold 80.0')
+
+        dimensions_field = next((f for f in fields if f['title'] == 'Dimensions'), None)
+        self.assertIsNotNone(dimensions_field)
+        self.assertEqual(dimensions_field['value'], '    InstanceId: i-1234567890abcdef0')
 
         # Check the response
         self.assertEqual(result['statusCode'], 200)

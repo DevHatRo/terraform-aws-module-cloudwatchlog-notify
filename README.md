@@ -4,6 +4,10 @@
 
 This Terraform module deploys a complete solution for receiving CloudWatch Logs events and sending notifications through SNS.
 
+## License
+
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
 ## Architecture
 
 This module sets up:

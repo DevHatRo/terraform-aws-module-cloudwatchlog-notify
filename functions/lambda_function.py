@@ -96,16 +96,47 @@ def process_cloudwatch_alarm(alarm_data, sns_arn):
         alarm_reason = alarm_data.get('NewStateReason', 'No reason provided')
         alarm_state = alarm_data.get('NewStateValue', 'UNKNOWN')
         region = alarm_data.get('Region', 'unknown-region')
+        state_change_time = alarm_data.get('StateChangeTime', '')
+        old_state = alarm_data.get('OldStateValue', 'UNKNOWN')
+
+        # Extract trigger information
+        trigger = alarm_data.get('Trigger', {})
+        metric_name = trigger.get('MetricName', 'Unknown Metric')
+        namespace = trigger.get('Namespace', 'Unknown Namespace')
+        statistic = trigger.get('Statistic', 'Unknown')
+        period = trigger.get('Period', 0)
+        threshold = trigger.get('Threshold', 0)
+        comparison_operator = trigger.get('ComparisonOperator', 'Unknown')
+
+        # Format dimensions
+        dimensions = trigger.get('Dimensions', [])
+        dimension_str = '\n'.join([f"    {dim.get('name')}: {dim.get('value')}" for dim in dimensions])
 
         # Create notification message for email
-        notification_message = (
-            f"CloudWatch Alarm: {alarm_name}\n\n"
-            f"State: {alarm_state}\n"
-            f"Description: {alarm_description}\n"
-            f"Region: {region}\n\n"
-            f"Reason: {alarm_reason}\n\n"
-            f"Details: {json.dumps(alarm_data, indent=2)}"
-        )
+        notification_message = f"""
+CloudWatch Alarm: {alarm_name}
+
+Status: {alarm_state} (Previous: {old_state})
+Time: {state_change_time}
+Region: {region}
+
+Description:
+{alarm_description}
+
+Reason:
+{alarm_reason}
+
+Metric Details:
+  Metric: {metric_name}
+  Namespace: {namespace}
+  Statistic: {statistic}
+  Period: {period} seconds
+  Threshold: {threshold}
+  Operator: {comparison_operator}
+
+Dimensions:
+{dimension_str}
+"""
 
         # Create Slack message
         color = "danger" if alarm_state == "ALARM" else "good" if alarm_state == "OK" else "warning"
@@ -114,10 +145,14 @@ def process_cloudwatch_alarm(alarm_data, sns_arn):
                 "color": color,
                 "title": f"CloudWatch Alarm: {alarm_name}",
                 "fields": [
-                    {"title": "State", "value": alarm_state, "short": True},
+                    {"title": "Status", "value": f"{alarm_state} (Previous: {old_state})", "short": True},
+                    {"title": "Time", "value": state_change_time, "short": True},
                     {"title": "Region", "value": region, "short": True},
                     {"title": "Description", "value": alarm_description, "short": False},
-                    {"title": "Reason", "value": alarm_reason, "short": False}
+                    {"title": "Reason", "value": alarm_reason, "short": False},
+                    {"title": "Metric", "value": f"{namespace}/{metric_name}", "short": True},
+                    {"title": "Threshold", "value": f"{comparison_operator} {threshold}", "short": True},
+                    {"title": "Dimensions", "value": dimension_str, "short": False}
                 ]
             }]
         }
