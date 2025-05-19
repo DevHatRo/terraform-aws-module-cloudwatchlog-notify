@@ -4,7 +4,6 @@ import json
 import logging
 import os
 import urllib.request
-from urllib.request import Request, urlopen
 
 import boto3
 from botocore.exceptions import ClientError
@@ -41,28 +40,24 @@ def lambda_handler(event, context):
                 if sns_message:
                     try:
                         # Try to parse the message as JSON
-                        try:
-                            sns_data = json.loads(sns_message)
-                            # Check if this is a CloudWatch Alarm
-                            if 'AlarmName' in sns_data:
-                                logger.info("Processing CloudWatch Alarm notification")
-                                process_cloudwatch_alarm(sns_data, sns_arn)
-                            # If it has awslogs data, it's a CloudWatch Logs event
-                            elif 'awslogs' in sns_data:
-                                logger.info("Processing CloudWatch Logs notification from SNS")
-                                process_cloudwatch_log_event(sns_data, sns_arn)
-                            else:
-                                logger.info("Processing generic SNS notification")
-                                process_generic_sns_message(sns_data, sns_arn)
-                        except json.JSONDecodeError:
-                            # If not JSON, process as plain text
-                            logger.info("Processing plain text SNS notification")
-                            process_generic_sns_message(sns_message, sns_arn)
-                    except Exception as e:
-                        logger.error("Error processing SNS message: %s", str(e))
+                        sns_data = json.loads(sns_message)
+
+                        # Check if this is a CloudWatch Alarm
+                        if 'AlarmName' in sns_data:
+                            logger.info("Processing CloudWatch Alarm notification")
+                            process_cloudwatch_alarm(sns_data, sns_arn)
+                        # If it has awslogs data, it's a CloudWatch Logs event
+                        elif 'awslogs' in sns_data:
+                            logger.info("Processing CloudWatch Logs notification from SNS")
+                            process_cloudwatch_log_event(sns_data, sns_arn)
+                        else:
+                            logger.info("Processing generic SNS notification")
+                            process_generic_sns_message(sns_data, sns_arn)
+                    except json.JSONDecodeError:
+                        logger.error("Failed to parse SNS message as JSON: %s", sns_message)
                         return {
                             'statusCode': 400,
-                            'body': json.dumps('Error processing SNS message')
+                            'body': json.dumps('Invalid SNS message format')
                         }
     # Check if this is a direct CloudWatch Logs event
     elif 'awslogs' in event:
@@ -147,33 +142,19 @@ def process_generic_sns_message(sns_data, sns_arn):
     Process a generic SNS message and forward it.
 
     Args:
-        sns_data (dict or str): The SNS message data
+        sns_data (dict): The SNS message data
         sns_arn (str): SNS topic ARN to send notifications to
     """
     try:
-        # Handle both string and dict inputs
-        if isinstance(sns_data, str):
-            message = sns_data
-            try:
-                # Try to parse as JSON for better formatting
-                json_data = json.loads(sns_data)
-                formatted_message = json.dumps(json_data, indent=2)
-            except json.JSONDecodeError:
-                # If not JSON, use the string as is
-                formatted_message = message
-        else:
-            # If it's already a dict, format it nicely
-            formatted_message = json.dumps(sns_data, indent=2)
-
-        # Create notification message for email
-        notification_message = f"SNS Notification:\n\n{formatted_message}"
+        # Create a simple message from the data
+        notification_message = f"SNS Notification:\n\n{json.dumps(sns_data, indent=2)}"
 
         # Create Slack message
         slack_message = {
             "attachments": [{
                 "color": "good",
                 "title": "SNS Notification",
-                "text": formatted_message
+                "text": json.dumps(sns_data, indent=2)
             }]
         }
 
@@ -334,103 +315,6 @@ def process_cloudwatch_log_event(event, sns_arn):
         except Exception as e:
             logger.error("Error processing log event: %s", str(e))
 
-def process_log_event(log_event, log_group, log_stream):
-    """Process a single log event and send notifications if it contains an error"""
-    try:
-        message = log_event['message']
-
-        # Try to parse the message as JSON
-        try:
-            json_message = json.loads(message)
-            # If the message is JSON and contains a 'log' field, use that as the message
-            if isinstance(json_message, dict) and 'log' in json_message:
-                message = json_message['log']
-                # Add additional context from JSON if available
-                context = {}
-                if 'kubernetes' in json_message:
-                    k8s = json_message['kubernetes']
-                    if 'namespace_name' in k8s:
-                        context['namespace'] = k8s['namespace_name']
-                    if 'pod_name' in k8s:
-                        context['pod'] = k8s['pod_name']
-                    if 'container_name' in k8s:
-                        context['container'] = k8s['container_name']
-        except json.JSONDecodeError:
-            # If the message is not JSON, use it as is
-            pass
-
-        # Check for error indicators in the message
-        error_indicators = ['error', 'fail', 'exception', 'critical', 'fatal', 'panic']
-        if any(indicator in message.lower() for indicator in error_indicators):
-            # Send to SNS
-            sns_message = {
-                'logGroup': log_group,
-                'logStream': log_stream,
-                'message': message,
-                'timestamp': log_event['timestamp']
-            }
-
-            # Add context if available
-            if context:
-                sns_message['context'] = context
-
-            sns_client.publish(
-                TopicArn=os.environ['SNS_ARN'],
-                Message=json.dumps(sns_message),
-                Subject='CloudWatch Alert'
-            )
-
-            # Send to Slack if enabled
-            if os.environ.get('ENABLE_SLACK', 'false').lower() == 'true':
-                slack_webhook_url = os.environ.get('SLACK_WEBHOOK_URL')
-                slack_channel = os.environ.get('SLACK_CHANNEL', '#alerts')
-                slack_username = os.environ.get('SLACK_USERNAME', 'CloudWatch-Bot')
-
-                if slack_webhook_url:
-                    # Prepare Slack message
-                    slack_message = {
-                        'attachments': [{
-                            'color': 'danger',
-                            'title': f'Error in {log_group}',
-                            'fields': [
-                                {'title': 'Log Group', 'value': log_group, 'short': True},
-                                {'title': 'Log Stream', 'value': log_stream, 'short': True}
-                            ]
-                        }],
-                        'channel': slack_channel,
-                        'username': slack_username
-                    }
-
-                    # Add context fields if available
-                    if context:
-                        for key, value in context.items():
-                            slack_message['attachments'][0]['fields'].append({
-                                'title': key.capitalize(),
-                                'value': value,
-                                'short': True
-                            })
-
-                    # Add the error message
-                    slack_message['attachments'][0]['fields'].append({
-                        'title': 'Message',
-                        'value': message,
-                        'short': False
-                    })
-
-                    # Send to Slack
-                    req = Request(
-                        slack_webhook_url,
-                        data=json.dumps(slack_message).encode('utf-8'),
-                        headers={'Content-Type': 'application/json'}
-                    )
-                    with urlopen(req) as response:
-                        if response.status != 200:
-                            logger.error(f'Failed to send message to Slack: {response.status} {response.reason}')
-
-    except Exception as e:
-        logger.error(f'Error processing log event: {str(e)}')
-        raise
-
 def send_to_sns(message, sns_arn):
     """
     Send a message to an SNS topic.
@@ -463,13 +347,12 @@ def send_to_slack(message, webhook_url):
     try:
         data = json.dumps(message).encode('utf-8')
         headers = {'Content-Type': 'application/json'}
-        req = Request(webhook_url, data=data, headers=headers)
+        req = urllib.request.Request(webhook_url, data=data, headers=headers)
 
-        with urlopen(req) as response:
+        with urllib.request.urlopen(req) as response:
             if response.status != 200:
                 logger.error("Failed to send message to Slack. Status code: %s", response.status)
             else:
                 logger.info("Message sent to Slack successfully")
     except Exception as e:
         logger.error("Error sending message to Slack: %s", str(e))
-        # Don't re-raise the exception to allow the function to continue
