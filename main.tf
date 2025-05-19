@@ -6,17 +6,17 @@ module "lambda_function" {
   source  = "terraform-aws-modules/lambda/aws"
   version = "7.21.0"
 
-  create        = var.create_lambda_function && var.enabled
-  function_name = var.function_name
-  description   = "CloudWatch Logs Notifier Lambda function"
-  handler       = "lambda_function.lambda_handler"
-  runtime       = "python3.11"
-  timeout       = 30
-  memory_size   = 128
-
+  create         = var.create_lambda_function && var.enabled
+  function_name  = var.function_name
+  description    = "CloudWatch Logs Notifier Lambda function"
+  handler        = "lambda_function.lambda_handler"
+  runtime        = "python3.11"
+  timeout        = 30
+  memory_size    = 128
   source_path    = "${path.module}/functions"
   create_package = true
   package_type   = "Zip"
+  publish        = true
 
   environment_variables = {
     SNS_ARN           = module.sns.topic_arn
