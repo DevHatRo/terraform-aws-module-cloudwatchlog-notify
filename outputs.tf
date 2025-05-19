@@ -28,6 +28,16 @@ output "sns_topic_name" {
   value       = module.sns.topic_name
 }
 
+output "cloudwatch_alarm_sns_topic_arn" {
+  description = "The ARN of the SNS topic for CloudWatch alarm notifications"
+  value       = module.cloudwatch_alarm_sns.topic_arn
+}
+
+output "cloudwatch_alarm_sns_topic_name" {
+  description = "The name of the SNS topic for CloudWatch alarm notifications"
+  value       = module.cloudwatch_alarm_sns.topic_name
+}
+
 output "lambda_role_arn" {
   description = "The ARN of the IAM role used by the Lambda function"
   value       = module.lambda_function.lambda_role_arn
@@ -37,3 +47,4 @@ output "lambda_role_name" {
   description = "The name of the IAM role used by the Lambda function"
   value       = module.lambda_function.lambda_role_name
 }
+
