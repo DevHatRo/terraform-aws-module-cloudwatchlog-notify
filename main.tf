@@ -19,7 +19,12 @@ module "lambda_function" {
   package_type   = "Zip"
 
   environment_variables = {
-    SNS_ARN = module.sns.topic_arn
+    SNS_ARN           = module.sns.topic_arn
+    ENABLE_SLACK      = var.enable_slack_notifications ? "true" : "false"
+    SLACK_WEBHOOK_URL = var.slack_webhook_url
+    SLACK_CHANNEL     = var.slack_channel
+    SLACK_USERNAME    = var.slack_username
+    EMAIL_SUBJECT     = var.email_subject
   }
 
   cloudwatch_logs_retention_in_days = var.cloudwatch_log_group_retention_in_days
@@ -37,18 +42,26 @@ module "lambda_function" {
     var.additional_policy_statements
   )
 
-  allowed_triggers = {
-    CloudWatchLogs = {
-      principal  = "logs.${data.aws_region.current.name}.amazonaws.com"
-      source_arn = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:*"
-    }
-  }
+  allowed_triggers = merge(
+    {
+      CloudWatchLogs = {
+        principal  = "logs.${data.aws_region.current.name}.amazonaws.com"
+        source_arn = "arn:aws:logs:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:log-group:*"
+      }
+    },
+    var.create_cloudwatch_alarm_sns_topic && var.enabled ? {
+      CloudWatchAlarmSNS = {
+        principal  = "sns.amazonaws.com"
+        source_arn = module.cloudwatch_alarm_sns.topic_arn
+      }
+    } : {}
+  )
 
   tags = var.tags
 }
 
 #######################
-# SNS Topic
+# SNS Topic for Notifications
 #######################
 
 module "sns" {
@@ -63,6 +76,29 @@ module "sns" {
     for idx, email in var.email_subscribers : "email-${idx}" => {
       protocol = "email"
       endpoint = email
+    }
+  }
+
+  tags = var.tags
+}
+
+#######################
+# SNS Topic for CloudWatch Alarms
+#######################
+
+module "cloudwatch_alarm_sns" {
+  source  = "terraform-aws-modules/sns/aws"
+  version = "6.1.3"
+
+  create       = var.create_cloudwatch_alarm_sns_topic && var.enabled
+  name         = var.cloudwatch_alarm_sns_topic_name
+  display_name = "CloudWatch Alarm Notifications"
+
+  # Subscribe the Lambda function to the SNS topic
+  subscriptions = {
+    lambda = {
+      protocol = "lambda"
+      endpoint = module.lambda_function.lambda_function_arn
     }
   }
 
