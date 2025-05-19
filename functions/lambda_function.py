@@ -107,7 +107,7 @@ def process_cloudwatch_alarm(alarm_data, sns_arn):
         period = trigger.get('Period', 0)
         threshold = trigger.get('Threshold', 0)
         comparison_operator = trigger.get('ComparisonOperator', 'Unknown')
-        
+
         # Format dimensions
         dimensions = trigger.get('Dimensions', [])
         dimension_str = '\n'.join([f"    {dim.get('name')}: {dim.get('value')}" for dim in dimensions])
