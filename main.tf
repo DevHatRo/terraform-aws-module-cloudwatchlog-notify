@@ -10,7 +10,7 @@ module "lambda_function" {
   function_name  = var.function_name
   description    = "CloudWatch Logs Notifier Lambda function"
   handler        = "lambda_function.lambda_handler"
-  runtime        = "python3.11"
+  runtime        = "python3.13"
   timeout        = 30
   memory_size    = 128
   source_path    = "${path.module}/functions"
