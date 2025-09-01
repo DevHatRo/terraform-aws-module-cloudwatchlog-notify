@@ -4,7 +4,7 @@
 
 module "lambda_function" {
   source  = "terraform-aws-modules/lambda/aws"
-  version = "7.21.0"
+  version = "8.1.0"
 
   create         = var.create_lambda_function && var.enabled
   function_name  = var.function_name
