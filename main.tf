@@ -66,7 +66,7 @@ module "lambda_function" {
 
 module "sns" {
   source  = "terraform-aws-modules/sns/aws"
-  version = "6.1.3"
+  version = "7.0.0"
 
   create       = var.create_sns_topic && var.enabled
   name         = var.sns_topic_name
@@ -88,7 +88,7 @@ module "sns" {
 
 module "cloudwatch_alarm_sns" {
   source  = "terraform-aws-modules/sns/aws"
-  version = "6.1.3"
+  version = "7.0.0"
 
   create       = var.create_cloudwatch_alarm_sns_topic && var.enabled
   name         = var.cloudwatch_alarm_sns_topic_name
